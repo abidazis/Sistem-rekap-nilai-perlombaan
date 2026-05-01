@@ -47,6 +47,9 @@
                 <a href="{{ route('input.nilai') }}" wire:navigate class="block px-4 py-2 rounded transition {{ request()->routeIs('input.nilai') ? 'bg-green-600 text-white font-bold' : 'text-slate-300 hover:bg-slate-800' }}">
                     ✍️ INPUT NILAI
                 </a>
+                <a href="{{ route('input.denda') }}" wire:navigate class="block px-4 py-2 rounded transition {{ request()->routeIs('input.denda') ? 'bg-green-600 text-white font-bold' : 'text-slate-300 hover:bg-slate-800' }}">
+                    ✍️ Pengurangan Nilai
+                </a>
 
                 <div class="text-xs font-bold text-slate-500 uppercase mt-4 mb-2 px-2">Hasil Lomba</div>
                 <a href="{{ route('rekap.juara') }}" wire:navigate class="block px-4 py-2 rounded transition {{ request()->routeIs('rekap.juara') ? 'bg-yellow-500 text-slate-900 font-bold' : 'text-slate-300 hover:bg-slate-800' }}">

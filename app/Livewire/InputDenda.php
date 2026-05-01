@@ -18,11 +18,38 @@ class InputDenda extends Component
     public $poin_minus;
     public $keterangan;
 
+    // 👇 1. TAMBAHKAN KAMUS ATURAN DENDA EVENT INI DI SINI 👇
+    public $daftar_pelanggaran = [
+        'Terlambat saat daftar ulang' => 10,
+        'Kekurangan anggota saat tampil' => 50,
+        'Mengganti anggota secara ilegal' => 50,
+        'Tidak mengikuti apel pembukaan' => 50,
+        'Tidak memasuki DP I (3x panggilan)' => 100,
+        'Tampil melebihi waktu' => 1,
+        'Melewati garis batas' => 10,
+        'Tidak mempunyai surat keterangan' => 30,
+        'Administrasi daftar ulang tidak lengkap' => 50,
+        'Peserta pingsan saat tampil' => 50,
+        'Danton pingsan saat tampil' => 100,
+        'Lainnya (Isi Manual)' => ''
+    ];
+
     public function mount()
     {
         $latest = Lomba::latest()->first();
         if($latest) {
             $this->selected_lomba_id = $latest->id;
+        }
+    }
+
+    // 👇 2. FUNGSI MAGIC LIVEWIRE: OTOMATIS MENGISI POIN SAAT DROPDOWN DIPILIH 👇
+    public function updatedJenisPelanggaran($value)
+    {
+        // Jika pelanggaran ada di kamus, isi otomatis poinnya
+        if (array_key_exists($value, $this->daftar_pelanggaran)) {
+            $this->poin_minus = $this->daftar_pelanggaran[$value];
+        } else {
+            $this->poin_minus = null; // Kosongkan jika pilih "Lainnya"
         }
     }
 

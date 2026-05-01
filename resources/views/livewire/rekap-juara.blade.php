@@ -37,7 +37,7 @@
                             @endforeach
                         @endif
                         
-                        <th class="p-5 text-center text-red-400 border-l border-slate-700">DENDA</th>
+                        <th class="p-5 text-center text-red-400 border-l border-slate-700">Minus</th>
                         <th class="p-5 text-center text-yellow-400 text-xl border-l border-slate-700">TOTAL SKOR</th>
                         <!-- TAMBAHAN HEADER AKSI -->
                         <th class="p-5 text-center border-l border-slate-700 w-24">AKSI</th>
