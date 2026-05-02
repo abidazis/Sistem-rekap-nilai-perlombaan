@@ -10,6 +10,13 @@
                         <option value="{{ $event->id }}">{{ $event->nama_lomba }}</option>
                     @endforeach
                 </select>
+                @if($selected_lomba_id)
+                    <div class="mt-4 flex justify-end">
+                        <button onclick="window.open('/cetak-ljk/{{ $selected_lomba_id }}', '_blank')" class="bg-slate-800 hover:bg-slate-700 text-white text-sm font-bold py-2 px-4 rounded shadow-md flex items-center gap-2">
+                            🖨️ Cetak Lembar Juri (PDF)
+                        </button>
+                    </div>
+                @endif
             </div>
 
             <div>
@@ -63,56 +70,40 @@
             <h3 class="text-lg font-bold mb-4 text-gray-800">{{ $is_edit ? 'Edit Item' : 'Input Item Baru' }}</h3>
             
             <form wire:submit.prevent="{{ $is_edit ? 'update' : 'store' }}">
-                <div class="grid grid-cols-1 md:grid-cols-12 gap-4 mb-6">
-                    
-                    <div class="md:col-span-2">
-                        <label class="block text-sm font-bold mb-1 text-gray-600">No. Urut</label>
-                        <input type="number" wire:model="urutan" class="w-full border-2 border-gray-300 p-2 rounded-lg text-center font-bold focus:border-blue-500 focus:ring-0">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <div class="md:col-span-1">
+                        <label class="block text-slate-500 text-xs font-bold uppercase mb-2">No. Urut</label>
+                        <input type="number" wire:model="urutan" class="w-full border-2 border-slate-300 rounded p-2 focus:border-blue-500" required>
                     </div>
-
-                    <div class="md:col-span-10">
-                        <label class="block text-sm font-bold mb-1 text-gray-600">Nama Gerakan / Item</label>
-                        <input type="text" wire:model="nama_gerakan" class="w-full border-2 border-gray-300 p-2 rounded-lg font-bold text-gray-800 uppercase focus:border-blue-500 focus:ring-0" placeholder="Contoh: HORMAT KANAN">
+                    <div class="md:col-span-3">
+                        <label class="block text-slate-500 text-xs font-bold uppercase mb-2">Nama Gerakan / Item</label>
+                        <input type="text" wire:model="nama_gerakan" class="w-full border-2 border-slate-300 rounded p-2 focus:border-blue-500" required>
                     </div>
-
-                    <div class="md:col-span-12 mt-2">
-                        <label class="block text-sm font-bold mb-3 text-gray-600 text-center border-b-2 border-dashed pb-2">Opsi Nilai (Sesuai Kolom Lembar Juri)</label>
-                        
-                        <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
-                            <div class="bg-red-50 border-2 border-red-200 p-3 rounded-xl text-center shadow-sm">
-                                <label class="block text-xs font-black text-red-600 mb-2">KS (Kurang Sekali)</label>
-                                <input type="text" wire:model="nilai_ks" class="w-full border-red-300 rounded text-center font-mono font-bold text-red-700 focus:ring-red-500" placeholder="Cth: 16">
-                            </div>
-                            
-                            <div class="bg-orange-50 border-2 border-orange-200 p-3 rounded-xl text-center shadow-sm">
-                                <label class="block text-xs font-black text-orange-600 mb-2">K (Kurang)</label>
-                                <input type="text" wire:model="nilai_k" class="w-full border-orange-300 rounded text-center font-mono font-bold text-orange-700 focus:ring-orange-500" placeholder="Cth: 18">
-                            </div>
-                            
-                            <div class="bg-yellow-50 border-2 border-yellow-200 p-3 rounded-xl text-center shadow-sm">
-                                <label class="block text-xs font-black text-yellow-600 mb-2">C (Cukup)</label>
-                                <input type="text" wire:model="nilai_c" class="w-full border-yellow-300 rounded text-center font-mono font-bold text-yellow-700 focus:ring-yellow-500" placeholder="Cth: 20, 22">
-                            </div>
-                            
-                            <div class="bg-green-50 border-2 border-green-200 p-3 rounded-xl text-center shadow-sm">
-                                <label class="block text-xs font-black text-green-600 mb-2">B (Baik)</label>
-                                <input type="text" wire:model="nilai_b" class="w-full border-green-300 rounded text-center font-mono font-bold text-green-700 focus:ring-green-500" placeholder="Cth: 24, 26">
-                            </div>
-                            
-                            <div class="bg-blue-50 border-2 border-blue-200 p-3 rounded-xl text-center shadow-sm">
-                                <label class="block text-xs font-black text-blue-600 mb-2">SB (Sangat Baik)</label>
-                                <input type="text" wire:model="nilai_sb" class="w-full border-blue-300 rounded text-center font-mono font-bold text-blue-700 focus:ring-blue-500" placeholder="Cth: 28, 30">
-                            </div>
-                        </div>
-                        
-                        <p class="text-xs text-gray-500 mt-3 text-center">💡 <b>Tips:</b> Jika di PDF ada dua/tiga nilai dalam satu kolom (seperti C, B, SB), pisahkan dengan koma. Contoh: <code>20, 22</code></p>
-                    </div>
-
                 </div>
 
-                <div class="flex justify-end gap-3 border-t-2 border-gray-100 pt-5">
-                    <button type="button" wire:click="cancel" class="text-gray-500 hover:text-gray-800 font-bold px-4 transition">Batal</button>
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-black py-2 px-8 rounded-lg shadow-lg transform transition hover:scale-105">💾 Simpan Item</button>
+                <div class="mb-4">
+                    <label class="block text-slate-500 text-xs font-bold uppercase mb-2 text-center">Daftar Opsi Nilai (Pisahkan dengan Koma)</label>
+                    <div class="bg-blue-50 border-2 border-blue-200 p-4 rounded-xl shadow-sm">
+                        <input type="text" wire:model="nilai_ks" class="w-full border-2 border-blue-300 rounded-lg text-lg font-mono font-bold text-blue-800 focus:ring-blue-500 p-3 text-center" placeholder="Contoh: 5, 7, 8, 10, 11, 13, 14, 16" required>
+                        <p class="mt-3 text-xs text-blue-600 text-center">
+                            💡 <b>Tips:</b> Masukkan seluruh deret angka nilai dari <i>Kurang</i> sampai <i>Sangat Baik</i> ke dalam satu kotak ini. Sistem akan otomatis memecahnya menjadi tombol-tombol di aplikasi Juri.
+                        </p>
+                    </div>
+                    
+                    <!-- Hidden input agar backend kita tidak error -->
+                    <div class="hidden">
+                        <input type="text" wire:model="nilai_k">
+                        <input type="text" wire:model="nilai_c">
+                        <input type="text" wire:model="nilai_b">
+                        <input type="text" wire:model="nilai_sb">
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" wire:click="cancel" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 px-6 rounded shadow-sm">Batal</button>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-6 rounded shadow-lg flex items-center gap-2">
+                        <span>{{ $is_edit ? '💾 Update Item' : '💾 Simpan Item' }}</span>
+                    </button>
                 </div>
             </form>
         </div>

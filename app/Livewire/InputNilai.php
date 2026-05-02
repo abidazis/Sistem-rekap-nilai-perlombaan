@@ -82,25 +82,21 @@ class InputNilai extends Component
         ], [
             'selected_juri_id.required' => 'Pilih Juri dulu bro!',
             'selected_peserta_id.required' => 'Peserta belum dipilih!',
+            'inputs.required' => 'Belum ada satupun nilai yang dipilih!',
         ]);
 
-        // 1. VALIDASI: HITUNG TOTAL GERAKAN YANG HARUS DINILAI
-        $total_item_wajib = ItemPenilaian::join('kategori_penilaian', 'item_penilaian.kategori_penilaian_id', '=', 'kategori_penilaian.id')
-            ->where('kategori_penilaian.lomba_id', $this->selected_lomba_id)
-            ->count();
-
-        // 2. FILTER INPUT (Buang yang kosong, tapi biarkan angka 0)
+        // 1. FILTER INPUT (Buang yang kosong, tapi biarkan angka 0)
         $inputs_valid = array_filter($this->inputs, function($val) {
             return $val !== "" && $val !== null; 
         });
 
-        // 3. CEK KESESUAIAN
-        if (count($inputs_valid) < $total_item_wajib) {
-            session()->flash('error', 'GAGAL! Ada item gerakan yang terlewat belum dinilai. Jika pasukan tidak bergerak, wajib pilih nilai 0!');
+        // 2. CEK APAKAH ADA ISINYA
+        if (count($inputs_valid) == 0) {
+            session()->flash('error', 'GAGAL! Belum ada satupun tombol nilai yang ditekan!');
             return;
         }
 
-        // 4. PROSES SIMPAN AMAN
+        // 3. PROSES SIMPAN AMAN (Tanpa diblokir jumlah total item)
         foreach ($inputs_valid as $item_id => $nilai) {
             Nilai::updateOrCreate(
                 [
@@ -114,10 +110,12 @@ class InputNilai extends Component
             );
         }
 
+        // 4. UPDATE STATUS PESERTA
         Peserta::where('id', $this->selected_peserta_id)->update(['status_tampil' => 'selesai']);
 
-        session()->flash('message', 'Nilai Berhasil Disimpan!');
+        session()->flash('message', '🔥 Nilai Berhasil Disimpan ke Database!');
 
+        // 5. RESET FORM BIAR SIAP BUAT PESERTA BERIKUTNYA
         $this->inputs = []; 
         $this->selected_peserta_id = ''; 
     }

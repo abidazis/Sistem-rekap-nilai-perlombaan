@@ -1,4 +1,5 @@
-<div wire:poll.10s> 
+<div wire:poll.10s> <!-- INI ADALAH SATU-SATUNYA ROOT ELEMENT, SEMUA WAJIB DI DALAM SINI -->
+    
     <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
         <div>
             <h1 class="text-3xl font-extrabold text-slate-800 tracking-tight">🏆 LEADERBOARD LIVE</h1>
@@ -6,9 +7,19 @@
         </div>
         
         <div class="flex items-center gap-3 w-full md:w-auto">
-            <!-- TOMBOL CETAK KLASEMEN SELURUHNYA -->
+            <!-- TOMBOL CETAK JUARA KATEGORI -->
+            <button onclick="window.open('/cetak-kategori/{{ $selected_lomba_id }}', '_blank')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow whitespace-nowrap flex items-center gap-2">
+                🏅 Cetak Kategori
+            </button>
+
+            <!-- TOMBOL CETAK JUARA UTAMA (DENGAN PILIHAN) -->
+            <button onclick="document.getElementById('modalUtama').classList.remove('hidden')" class="bg-yellow-500 hover:bg-yellow-600 text-slate-900 font-bold py-2 px-4 rounded-lg shadow whitespace-nowrap flex items-center gap-2">
+                🏆 Cetak Juara Utama
+            </button>
+
+            <!-- TOMBOL CETAK REKAP KESELURUHAN (YANG LAMA) -->
             <button onclick="window.open('/cetak-klasemen/{{ $selected_lomba_id }}', '_blank')" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow whitespace-nowrap flex items-center gap-2">
-                🖨️ Cetak Rekap Akhir
+                🖨️ Cetak Rekap Lengkap
             </button>
 
             <select wire:model.live="selected_lomba_id" class="w-full md:w-64 border-2 border-slate-300 rounded-lg p-2 font-bold text-slate-700">
@@ -17,8 +28,9 @@
                 @endforeach
             </select>
         </div>
-    </div>
+    </div> <!-- Penutup div header -->
 
+    <!-- TABEL LEADERBOARD -->
     <div class="bg-white rounded-xl shadow-2xl overflow-hidden border border-slate-200">
         <div class="overflow-x-auto">
             <table class="w-full text-left">
@@ -119,7 +131,36 @@
         </div>
     </div>
     
-    <div class="mt-4 text-center text-xs text-slate-400">
+    <div class="mt-4 text-center text-xs text-slate-400 mb-8">
         Halaman ini melakukan refresh otomatis setiap 10 detik.
     </div>
-</div>
+
+    <!-- MODAL PILIH KATEGORI JUARA UTAMA (SEKARANG ADA DI DALAM ROOT DIV!) -->
+    <div id="modalUtama" class="fixed inset-0 z-50 hidden bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md border-t-4 border-yellow-500">
+            <h3 class="text-xl font-black text-slate-800 mb-2">🏆 Setup Juara Utama</h3>
+            <p class="text-sm text-slate-500 mb-6">Pilih kategori apa saja yang ingin diakumulasikan untuk menentukan Juara Utama.</p>
+            
+            <form action="/cetak-utama/{{ $selected_lomba_id }}" target="_blank" method="GET">
+                <div class="flex flex-col gap-3 mb-6 bg-slate-50 p-4 rounded-lg border border-slate-200">
+                    @if(isset($kategoris))
+                        @foreach($kategoris as $kat)
+                            <label class="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-lg hover:bg-blue-50 cursor-pointer shadow-sm transition-colors">
+                                <input type="checkbox" name="kategori[]" value="{{ $kat->id }}" class="w-5 h-5 text-blue-600 rounded focus:ring-blue-500" checked>
+                                <span class="font-bold text-slate-700">{{ $kat->nama_kategori }}</span>
+                            </label>
+                        @endforeach
+                    @endif
+                </div>
+                
+                <div class="flex justify-end gap-3">
+                    <button type="button" onclick="document.getElementById('modalUtama').classList.add('hidden')" class="px-5 py-2 bg-slate-200 text-slate-700 font-bold rounded-lg hover:bg-slate-300 transition-colors">Batal</button>
+                    <button type="submit" onclick="document.getElementById('modalUtama').classList.add('hidden')" class="px-5 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-500 shadow-md flex items-center gap-2 transition-colors">
+                        🖨️ Generate & Cetak
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+</div> <!-- PENUTUP ROOT DIV -->

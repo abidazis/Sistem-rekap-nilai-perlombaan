@@ -53,4 +53,81 @@ class CetakController extends Controller
         
         return view('cetak.peserta', compact('peserta', 'kategoris'));
     }
+
+    // Fungsi 3: Cetak Juara Utama (Kombinasi Kategori Dinamis)
+    public function cetakUtama(Request $request, $lomba_id)
+    {
+        $lomba = Lomba::findOrFail($lomba_id);
+        
+        // Ambil array ID kategori yang dicentang oleh user
+        $selected_kategori_ids = $request->input('kategori', []); 
+
+        if(empty($selected_kategori_ids)) {
+            return "<script>alert('Pilih minimal 1 kategori bro!'); window.close();</script>";
+        }
+
+        // Hanya ambil kategori yang dipilih
+        $kategoris = KategoriPenilaian::whereIn('id', $selected_kategori_ids)->with('items')->get();
+        $all_peserta = Peserta::where('lomba_id', $lomba_id)->with(['nilai', 'denda'])->get();
+        
+        $ranking = $all_peserta->map(function($p) use ($kategoris) {
+            $total_nilai_utama = 0;
+            
+            // Hitung nilai HANYA dari kategori yang dipilih
+            foreach($kategoris as $kat) {
+                $item_ids = $kat->items->pluck('id');
+                $raw_score = $p->nilai->whereIn('item_penilaian_id', $item_ids)->sum('nilai');
+                $total_nilai_utama += $raw_score;
+            }
+            
+            $p->total_minus = $p->denda->sum('poin_minus');
+            $p->keterangan_denda = $p->denda->pluck('keterangan')->implode(', '); 
+            
+            // Perhitungan akhir sesuai format Pandawa
+            $p->total_kotor = $total_nilai_utama;
+            $p->grand_total = $total_nilai_utama - $p->total_minus;
+            
+            return $p;
+        })->sortByDesc('grand_total')->values();
+
+        // Buat string nama kategori yang dipilih untuk dicetak di kertas
+        $nama_kategori_dipilih = $kategoris->pluck('nama_kategori')->implode(' + ');
+
+        return view('cetak.utama', compact('lomba', 'ranking', 'nama_kategori_dipilih'));
+    }
+
+    // Fungsi 4: Cetak Khusus Juara Per Kategori
+    public function cetakKategori($lomba_id)
+    {
+        $lomba = Lomba::findOrFail($lomba_id);
+        $kategoris = KategoriPenilaian::where('lomba_id', $lomba_id)->with('items')->get();
+        $all_peserta = Peserta::where('lomba_id', $lomba_id)->with('nilai')->get();
+
+        $ranking_per_kategori = [];
+        
+        foreach($kategoris as $kat) {
+            $item_ids = $kat->items->pluck('id');
+            
+            // Hitung dan urutkan peserta HANYA berdasarkan kategori ini
+            $ranking = $all_peserta->map(function($p) use ($kat, $item_ids) {
+                // Kloning object agar tidak bentrok antar kategori
+                $peserta_clone = clone $p;
+                $peserta_clone->skor_kategori = $p->nilai->whereIn('item_penilaian_id', $item_ids)->sum('nilai');
+                return $peserta_clone;
+            })->sortByDesc('skor_kategori')->values();
+            
+            $ranking_per_kategori[$kat->id] = $ranking;
+        }
+
+        return view('cetak.kategori', compact('lomba', 'kategoris', 'ranking_per_kategori'));
+    }
+
+    // Fungsi 5: Cetak Lembar Penilaian Juri (LJK) Kosong
+    public function cetakLJK($lomba_id)
+    {
+        $lomba = Lomba::findOrFail($lomba_id);
+        $kategoris = KategoriPenilaian::where('lomba_id', $lomba_id)->with('items')->get();
+
+        return view('cetak.ljk', compact('lomba', 'kategoris'));
+    }
 }
