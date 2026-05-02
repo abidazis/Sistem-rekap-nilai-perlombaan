@@ -74,8 +74,10 @@
                                                 {{ $item->nama_gerakan }}
                                             </td>
 
-                                            <td class="py-4 px-4">
-                                                <div class="flex flex-wrap items-center gap-2 md:gap-3">
+                                            <!-- KOLOM TOMBOL NILAI -->
+                                            <td class="py-3 px-4 w-2/3">
+                                                <!-- Ganti flex-wrap jadi flex-nowrap dan tambahkan overflow-x-auto -->
+                                                <div class="flex flex-nowrap items-center gap-1.5 md:gap-2 overflow-x-auto pb-2 scrollbar-hide">
                                                     @php
                                                         $opsi = $item->opsi_nilai ?? [];
                                                         if(!in_array('0', $opsi) && !in_array(0, $opsi)) {
@@ -91,8 +93,7 @@
                                                                 $textHover = $isZero ? 'hover:border-red-400 hover:bg-red-100 text-red-600 border-red-300 bg-red-50' : 'hover:border-blue-400 hover:bg-gray-100 text-gray-600 border-gray-300';
                                                             @endphp
 
-                                                            <label class="cursor-pointer m-0 relative">
-                                                                <!-- DIHILANGKAN REQUIRED BIAR BISA SIMPAN WALAU BELUM SELESAI -->
+                                                            <label class="cursor-pointer m-0 relative flex-shrink-0">
                                                                 <input 
                                                                     type="radio" 
                                                                     wire:model="inputs.{{ $item->id }}" 
@@ -100,7 +101,8 @@
                                                                     class="peer sr-only" 
                                                                 >
                                                                 
-                                                                <div class="w-12 h-12 md:w-14 md:h-14 flex items-center justify-center border-2 rounded-lg font-bold text-lg {{ $bgChecked }} peer-checked:text-white peer-checked:shadow-inner transition-all duration-200 ease-in-out {{ $textHover }}">
+                                                                <!-- Ukuran kotak diperkecil sedikit agar muat 1 baris (w-10 h-10) -->
+                                                                <div class="w-10 h-10 md:w-11 md:h-11 flex items-center justify-center border-2 rounded-lg font-bold text-base md:text-lg {{ $bgChecked }} peer-checked:text-white peer-checked:shadow-inner transition-all duration-200 ease-in-out {{ $textHover }}">
                                                                     {{ $val }}
                                                                 </div>
                                                             </label>
