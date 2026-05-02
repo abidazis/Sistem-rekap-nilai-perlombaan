@@ -36,3 +36,4 @@ Route::get('/cetak-peserta/{peserta_id}', [CetakController::class, 'cetakPeserta
 Route::get('/cetak-utama/{lomba_id}', [CetakController::class, 'cetakUtama']);
 Route::get('/cetak-kategori/{lomba_id}', [CetakController::class, 'cetakKategori']);
 Route::get('/cetak-ljk/{lomba_id}', [CetakController::class, 'cetakLJK']);
+Route::get('/export-excel/{lomba_id}', [CetakController::class, 'exportExcel']);

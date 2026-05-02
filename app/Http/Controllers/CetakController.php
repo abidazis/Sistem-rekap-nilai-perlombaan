@@ -130,4 +130,44 @@ class CetakController extends Controller
 
         return view('cetak.ljk', compact('lomba', 'kategoris'));
     }
+
+    // Fungsi: Export Rekap Lengkap ke Excel
+    public function exportExcel($lomba_id)
+    {
+        $lomba = Lomba::findOrFail($lomba_id);
+        $kategoris = KategoriPenilaian::where('lomba_id', $lomba_id)->orderBy('bobot_persen', 'desc')->get();
+        
+        // Ambil semua peserta beserta nilainya
+        $pesertas = Peserta::where('lomba_id', $lomba_id)->with('nilai', 'denda')->get()->map(function($p) use ($kategoris) {
+            $skor_per_kategori = [];
+            $total_kotor = 0;
+
+            foreach($kategoris as $kat) {
+                // Ambil semua ID item penilaian di kategori ini
+                $item_ids = $kat->items->pluck('id');
+                // Hitung total skor dari semua juri untuk kategori ini
+                $skor = $p->nilai->whereIn('item_penilaian_id', $item_ids)->sum('nilai');
+                
+                $skor_per_kategori[$kat->id] = $skor;
+                $total_kotor += $skor;
+            }
+
+            $total_minus = $p->denda->sum('poin_minus');
+            
+            // Simpan ke object peserta
+            $p->skor_kategori = $skor_per_kategori;
+            $p->total_kotor = $total_kotor;
+            $p->total_minus = $total_minus;
+            $p->grand_total = $total_kotor - $total_minus;
+            
+            return $p;
+        })->sortByDesc('grand_total')->values();
+
+        // 2 Baris Ajaib untuk memaksa browser mendownloadnya sebagai file Excel (.xls)
+        $filename = "ARSIP_REKAP_" . strtoupper(str_replace(' ', '_', $lomba->nama_lomba)) . ".xls";
+        header("Content-type: application/vnd.ms-excel");
+        header("Content-Disposition: attachment; filename=\"$filename\"");
+
+        return view('cetak.excel', compact('lomba', 'pesertas', 'kategoris'));
+    }
 }

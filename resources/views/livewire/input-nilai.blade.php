@@ -50,98 +50,118 @@
     @endif
 
     @if($selected_peserta_id && $selected_juri_id)
+        
+        <!-- LOGIKA MENCARI POSISI & HAK AKSES JURI TERPILIH -->
+        @php
+            $juriTerpilih = collect($juris)->firstWhere('id', $selected_juri_id);
+            // Pastikan kalau kosong, dia jadi array kosong [] bukan null
+            $allowedKategoriIds = $juriTerpilih && $juriTerpilih->kategori_ids ? $juriTerpilih->kategori_ids : [];
+            $adaTugas = false; // Variabel pendeteksi
+        @endphp
+
         <form wire:submit.prevent="simpan">
             
             <div class="grid grid-cols-1 gap-8">
                 @foreach($struktur_penilaian as $kategori)
-                    <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
-                        
-                        <div class="bg-gradient-to-r from-blue-800 to-blue-600 px-6 py-4 flex justify-between items-center">
-                            <h3 class="text-white font-black text-lg tracking-widest uppercase">{{ $kategori->nama_kategori }}</h3>
+                    
+                    <!-- HANYA TAMPILKAN JIKA ID KATEGORI INI ADA DI DALAM DAFTAR TUGAS JURI -->
+                    @if(is_array($allowedKategoriIds) && in_array($kategori->id, $allowedKategoriIds))
+                        @php $adaTugas = true; @endphp
+                        <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+                            
+                            <div class="bg-gradient-to-r from-blue-800 to-blue-600 px-6 py-4 flex justify-between items-center">
+                                <h3 class="text-white font-black text-lg tracking-widest uppercase">{{ $kategori->nama_kategori }}</h3>
+                            </div>
+
+                            <div class="overflow-x-auto w-full">
+                                <table class="w-full text-left border-collapse">
+                                    <tbody>
+                                        @foreach($kategori->items as $item)
+                                            <tr class="border-b border-gray-200 hover:bg-blue-50 transition-colors duration-200">
+                                                
+                                                <td class="py-4 px-4 w-12 text-center text-gray-400 font-bold bg-gray-50 border-r border-gray-200">
+                                                    #{{ $item->urutan }}
+                                                </td>
+                                                
+                                                <td class="py-4 px-6 font-bold text-gray-800 uppercase w-1/3 md:w-1/2">
+                                                    {{ $item->nama_gerakan }}
+                                                </td>
+
+                                                <!-- KOLOM TOMBOL NILAI -->
+                                                <td class="py-3 px-4 w-2/3">
+                                                    <div class="flex flex-nowrap items-center gap-1.5 md:gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                                                        @php
+                                                            $opsi = $item->opsi_nilai ?? [];
+                                                            if(!in_array('0', $opsi) && !in_array(0, $opsi)) {
+                                                                array_unshift($opsi, '0');
+                                                            }
+                                                        @endphp
+
+                                                        @if(count($opsi) > 0)
+                                                            @foreach($opsi as $val)
+                                                                @php
+                                                                    $isZero = ($val == '0' || $val == 0);
+                                                                    $bgChecked = $isZero ? 'peer-checked:bg-red-600 peer-checked:border-red-600' : 'peer-checked:bg-blue-600 peer-checked:border-blue-600';
+                                                                    $textHover = $isZero ? 'hover:border-red-400 hover:bg-red-100 text-red-600 border-red-300 bg-red-50' : 'hover:border-blue-400 hover:bg-gray-100 text-gray-600 border-gray-300';
+                                                                @endphp
+
+                                                                <label class="cursor-pointer m-0 relative flex-shrink-0">
+                                                                    <input 
+                                                                        type="radio" 
+                                                                        wire:model="inputs.{{ $item->id }}" 
+                                                                        value="{{ $val }}" 
+                                                                        class="peer sr-only" 
+                                                                    >
+                                                                    
+                                                                    <div class="w-10 h-10 md:w-11 md:h-11 flex items-center justify-center border-2 rounded-lg font-bold text-base md:text-lg {{ $bgChecked }} peer-checked:text-white peer-checked:shadow-inner transition-all duration-200 ease-in-out {{ $textHover }}">
+                                                                        {{ $val }}
+                                                                    </div>
+                                                                </label>
+                                                            @endforeach
+                                                        @else
+                                                            <span class="text-red-500 text-sm italic font-semibold py-2 px-4 bg-red-100 rounded">
+                                                                ⚠️ Opsi nilai belum diatur
+                                                            </span>
+                                                        @endif
+                                                    </div>
+                                                </td>
+                                                
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                            
                         </div>
-
-                        <div class="overflow-x-auto w-full">
-                            <table class="w-full text-left border-collapse">
-                                <tbody>
-                                    @foreach($kategori->items as $item)
-                                        <tr class="border-b border-gray-200 hover:bg-blue-50 transition-colors duration-200">
-                                            
-                                            <td class="py-4 px-4 w-12 text-center text-gray-400 font-bold bg-gray-50 border-r border-gray-200">
-                                                #{{ $item->urutan }}
-                                            </td>
-                                            
-                                            <td class="py-4 px-6 font-bold text-gray-800 uppercase w-1/3 md:w-1/2">
-                                                {{ $item->nama_gerakan }}
-                                            </td>
-
-                                            <!-- KOLOM TOMBOL NILAI -->
-                                            <td class="py-3 px-4 w-2/3">
-                                                <!-- Ganti flex-wrap jadi flex-nowrap dan tambahkan overflow-x-auto -->
-                                                <div class="flex flex-nowrap items-center gap-1.5 md:gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                                                    @php
-                                                        $opsi = $item->opsi_nilai ?? [];
-                                                        if(!in_array('0', $opsi) && !in_array(0, $opsi)) {
-                                                            array_unshift($opsi, '0');
-                                                        }
-                                                    @endphp
-
-                                                    @if(count($opsi) > 0)
-                                                        @foreach($opsi as $val)
-                                                            @php
-                                                                $isZero = ($val == '0' || $val == 0);
-                                                                $bgChecked = $isZero ? 'peer-checked:bg-red-600 peer-checked:border-red-600' : 'peer-checked:bg-blue-600 peer-checked:border-blue-600';
-                                                                $textHover = $isZero ? 'hover:border-red-400 hover:bg-red-100 text-red-600 border-red-300 bg-red-50' : 'hover:border-blue-400 hover:bg-gray-100 text-gray-600 border-gray-300';
-                                                            @endphp
-
-                                                            <label class="cursor-pointer m-0 relative flex-shrink-0">
-                                                                <input 
-                                                                    type="radio" 
-                                                                    wire:model="inputs.{{ $item->id }}" 
-                                                                    value="{{ $val }}" 
-                                                                    class="peer sr-only" 
-                                                                >
-                                                                
-                                                                <!-- Ukuran kotak diperkecil sedikit agar muat 1 baris (w-10 h-10) -->
-                                                                <div class="w-10 h-10 md:w-11 md:h-11 flex items-center justify-center border-2 rounded-lg font-bold text-base md:text-lg {{ $bgChecked }} peer-checked:text-white peer-checked:shadow-inner transition-all duration-200 ease-in-out {{ $textHover }}">
-                                                                    {{ $val }}
-                                                                </div>
-                                                            </label>
-                                                        @endforeach
-                                                    @else
-                                                        <span class="text-red-500 text-sm italic font-semibold py-2 px-4 bg-red-100 rounded">
-                                                            ⚠️ Opsi nilai belum diatur
-                                                        </span>
-                                                    @endif
-                                                </div>
-                                            </td>
-                                            
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                        
-                    </div>
+                    @endif
                 @endforeach
             </div>
 
-            <!-- TOMBOL SIMPAN YANG BENAR (CUMA ADA 1 SEKARANG) -->
-            <div class="fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur border-t border-gray-300 p-4 shadow-[0_-10px_20px_rgba(0,0,0,0.1)] z-50">
-                <div class="container mx-auto flex justify-between items-center max-w-7xl">
-                    <div class="text-sm text-gray-600 hidden md:flex flex-col">
-                        <span class="font-bold text-blue-900 text-lg uppercase">Pastikan semua nilai terisi!</span>
-                        <span>Klik kotak nilai untuk memilih. Jika gerakan terlewat, <b class="text-red-600">pilih angka 0</b>.</span>
-                    </div>
-                    <button type="submit" wire:loading.attr="disabled"
-                        class="w-full md:w-1/3 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white font-black text-lg py-4 px-10 rounded-xl shadow-xl transform transition hover:scale-105 border-b-4 border-green-800 focus:outline-none focus:ring-4 focus:ring-green-300 flex justify-center items-center gap-2"
-                    >
-                        <span wire:loading.remove wire:target="simpan">💾 SIMPAN NILAI</span>
-                        <span wire:loading wire:target="simpan">⏳ Menyimpan...</span>
-                    </button>
+            <!-- JIKA JURI BELUM PUNYA TUGAS SAMA SEKALI -->
+            @if(!$adaTugas)
+                <div class="text-center py-16 bg-red-50 rounded-xl border-2 border-dashed border-red-300 mt-4">
+                    <div class="text-5xl mb-3">⚠️</div>
+                    <h2 class="text-xl font-black text-red-700 mb-1">JURI BELUM DIBERIKAN TUGAS!</h2>
+                    <p class="text-red-500 font-medium">Silakan hubungi Admin untuk mengatur centangan hak akses kategori Juri ini di menu Master Juri.</p>
                 </div>
-            </div>
-            
-            <div class="h-32"></div> 
+            @else
+                <!-- TOMBOL SIMPAN (Hanya muncul jika ada tabel) -->
+                <div class="fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur border-t border-gray-300 p-4 shadow-[0_-10px_20px_rgba(0,0,0,0.1)] z-50">
+                    <div class="container mx-auto flex justify-between items-center max-w-7xl">
+                        <div class="text-sm text-gray-600 hidden md:flex flex-col">
+                            <span class="font-bold text-blue-900 text-lg uppercase">Pastikan semua nilai terisi!</span>
+                            <span>Klik kotak nilai untuk memilih. Jika gerakan terlewat, <b class="text-red-600">pilih angka 0</b>.</span>
+                        </div>
+                        <button type="submit" wire:loading.attr="disabled"
+                            class="w-full md:w-1/3 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white font-black text-lg py-4 px-10 rounded-xl shadow-xl transform transition hover:scale-105 border-b-4 border-green-800 focus:outline-none focus:ring-4 focus:ring-green-300 flex justify-center items-center gap-2"
+                        >
+                            <span wire:loading.remove wire:target="simpan">💾 SIMPAN NILAI</span>
+                            <span wire:loading wire:target="simpan">⏳ Menyimpan...</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="h-32"></div> 
+            @endif
 
         </form>
     @else

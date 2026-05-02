@@ -69,6 +69,24 @@
                         @if($is_edit) <p class="text-xs text-gray-400 mt-1">*Kosongkan jika tidak ingin mengganti password</p> @endif
                     </div>
 
+                    <!-- CHECKBOX HAK AKSES KATEGORI (SUNTIKAN BARU) -->
+                    <div class="col-span-1 md:col-span-2 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <label class="block text-sm font-bold mb-3 text-blue-800 border-b border-blue-200 pb-2">📋 Juri Ini Bertugas Menilai Kategori Apa Saja?</label>
+                        <div class="flex flex-wrap gap-4">
+                            @if(isset($kategoris) && count($kategoris) > 0)
+                                @foreach($kategoris as $kat)
+                                    <label class="flex items-center gap-2 cursor-pointer bg-white px-4 py-2 rounded shadow-sm border border-gray-200 hover:border-blue-400 transition">
+                                        <input type="checkbox" wire:model="kategori_ids" value="{{ $kat->id }}" class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500">
+                                        <span class="font-bold text-slate-700 text-sm">{{ $kat->nama_kategori }}</span>
+                                    </label>
+                                @endforeach
+                            @else
+                                <span class="text-xs text-red-500 italic font-bold">⚠️ Silakan buat kategori penilaian terlebih dahulu di Master Kategori.</span>
+                            @endif
+                        </div>
+                        @error('kategori_ids') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
+                    </div>
+
                 </div>
 
                 <div class="flex justify-end gap-3 border-t pt-4">
@@ -85,6 +103,8 @@
                 <tr>
                     <th class="p-4 border-b">Nama Juri</th>
                     <th class="p-4 border-b">Posisi</th>
+                    <!-- Kolom Baru: Tugas Kategori -->
+                    <th class="p-4 border-b">Tugas Kategori</th>
                     <th class="p-4 border-b">Username</th>
                     <th class="p-4 border-b text-center w-32">Aksi</th>
                 </tr>
@@ -97,6 +117,27 @@
                         <td class="p-4">
                             <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-bold">{{ $j->posisi }}</span>
                         </td>
+                        
+                        <!-- RENDER TUGAS KATEGORI DENGAN BADGE KEREN -->
+                        <td class="p-4">
+                            <div class="flex flex-wrap gap-1.5">
+                                @if($j->kategori_ids && is_array($j->kategori_ids) && count($j->kategori_ids) > 0)
+                                    @foreach($j->kategori_ids as $kat_id)
+                                        @php
+                                            // Mencari nama kategori berdasarkan ID yang dicentang
+                                            $kategori = collect($kategoris)->firstWhere('id', $kat_id);
+                                            $namaKategori = $kategori ? $kategori->nama_kategori : 'Tidak Diketahui';
+                                        @endphp
+                                        <span class="bg-emerald-100 text-emerald-800 px-2 py-1 rounded text-[10px] font-black uppercase tracking-wide border border-emerald-300 shadow-sm">
+                                            {{ $namaKategori }}
+                                        </span>
+                                    @endforeach
+                                @else
+                                    <span class="text-xs text-red-500 italic font-bold">⚠️ Belum Ada Tugas</span>
+                                @endif
+                            </div>
+                        </td>
+
                         <td class="p-4 font-mono text-gray-600">{{ $j->username }}</td>
                         <td class="p-4 text-center space-x-2">
                             <button wire:click="edit({{ $j->id }})" class="text-blue-600 hover:text-blue-800 font-bold text-xs uppercase">Edit</button>
@@ -105,14 +146,14 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="4" class="p-10 text-center text-gray-400">
+                        <td colspan="5" class="p-10 text-center text-gray-400">
                             Belum ada akun Juri terdaftar.
                         </td>
                     </tr>
                     @endforelse
                 @else
                     <tr>
-                        <td colspan="4" class="p-10 text-center text-gray-400 bg-gray-50">
+                        <td colspan="5" class="p-10 text-center text-gray-400 bg-gray-50">
                             👈 Pilih Event di atas untuk mengelola Juri.
                         </td>
                     </tr>

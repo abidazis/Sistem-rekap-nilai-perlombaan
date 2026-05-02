@@ -17,9 +17,9 @@
                 🏆 Cetak Juara Utama
             </button>
 
-            <!-- TOMBOL CETAK REKAP KESELURUHAN (YANG LAMA) -->
-            <button onclick="window.open('/cetak-klasemen/{{ $selected_lomba_id }}', '_blank')" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow whitespace-nowrap flex items-center gap-2">
-                🖨️ Cetak Rekap Lengkap
+            <!-- TOMBOL DOWNLOAD EXCEL -->
+            <button onclick="window.location.href='/export-excel/{{ $selected_lomba_id }}'" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow whitespace-nowrap flex items-center gap-2">
+                📥 Download Arsip Excel
             </button>
 
             <select wire:model.live="selected_lomba_id" class="w-full md:w-64 border-2 border-slate-300 rounded-lg p-2 font-bold text-slate-700">

@@ -16,6 +16,10 @@ class MasterKategori extends Component
     public $nama_kategori, $bobot_persen;
     public $kategori_id;
     
+    // Status Aturan Juara (BARU)
+    public $is_utama = false;
+    public $is_umum = false;
+    
     // Mode
     public $is_create = false;
     public $is_edit = false;
@@ -66,7 +70,10 @@ class MasterKategori extends Component
         KategoriPenilaian::create([
             'lomba_id' => $this->selected_lomba_id, // Otomatis masuk ke event yg dipilih
             'nama_kategori' => strtoupper($this->nama_kategori),
-            'bobot_persen' => $this->bobot_persen
+            'bobot_persen' => $this->bobot_persen,
+            // Simpan status centangan juara (BARU)
+            'is_utama' => $this->is_utama ? 1 : 0,
+            'is_umum' => $this->is_umum ? 1 : 0,
         ]);
 
         session()->flash('message', 'Kategori Berhasil Ditambahkan!');
@@ -80,6 +87,10 @@ class MasterKategori extends Component
         $this->kategori_id = $id;
         $this->nama_kategori = $kategori->nama_kategori;
         $this->bobot_persen = $kategori->bobot_persen;
+        
+        // Load status centangan juara ke form edit (BARU)
+        $this->is_utama = $kategori->is_utama;
+        $this->is_umum = $kategori->is_umum;
 
         $this->is_create = true;
         $this->is_edit = true;
@@ -96,7 +107,10 @@ class MasterKategori extends Component
         $kategori = KategoriPenilaian::find($this->kategori_id);
         $kategori->update([
             'nama_kategori' => strtoupper($this->nama_kategori),
-            'bobot_persen' => $this->bobot_persen
+            'bobot_persen' => $this->bobot_persen,
+            // Update status centangan juara (BARU)
+            'is_utama' => $this->is_utama ? 1 : 0,
+            'is_umum' => $this->is_umum ? 1 : 0,
         ]);
 
         session()->flash('message', 'Kategori Berhasil Diupdate!');
@@ -121,5 +135,8 @@ class MasterKategori extends Component
     {
         $this->nama_kategori = '';
         $this->bobot_persen = '';
+        // Reset centangan saat batal/sukses simpan (BARU)
+        $this->is_utama = false;
+        $this->is_umum = false;
     }
 }

@@ -35,8 +35,21 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
                         <label class="block text-sm font-bold mb-1 text-gray-600">Nama Kategori</label>
-                        <input type="text" wire:model="nama_kategori" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500" placeholder="Contoh: PBB MURNI, VARIASH, DANTON">
+                        <input type="text" wire:model="nama_kategori" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500" placeholder="Contoh: PBB MURNI, VARIASI, DANTON">
                     </div>
+                    
+                    <div class="col-span-1 md:col-span-2 flex flex-wrap gap-6 mt-2 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                        <label class="flex items-center gap-3 cursor-pointer group">
+                            <input type="checkbox" wire:model="is_utama" class="w-6 h-6 text-blue-600 rounded border-gray-300 focus:ring-blue-500 shadow-sm transition">
+                            <span class="font-bold text-slate-700 text-sm group-hover:text-blue-600 transition">🏆 Masuk Akumulasi JUARA UTAMA</span>
+                        </label>
+                        
+                        <label class="flex items-center gap-3 cursor-pointer group">
+                            <input type="checkbox" wire:model="is_umum" class="w-6 h-6 text-yellow-500 rounded border-gray-300 focus:ring-yellow-500 shadow-sm transition">
+                            <span class="font-bold text-slate-700 text-sm group-hover:text-yellow-600 transition">👑 Masuk Akumulasi JUARA UMUM</span>
+                        </label>
+                    </div>
+                    
                     <div>
                         <label class="block text-sm font-bold mb-1 text-gray-600">Bobot Nilai (%)</label>
                         <input type="number" wire:model="bobot_persen" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500" placeholder="Contoh: 70">
@@ -57,6 +70,8 @@
                 <tr>
                     <th class="p-4 border-b">Nama Kategori</th>
                     <th class="p-4 border-b text-center">Bobot (%)</th>
+                    <!-- Kolom Baru untuk Aturan Juara -->
+                    <th class="p-4 border-b text-center">Aturan Juara</th>
                     <th class="p-4 border-b text-center">Aksi</th>
                 </tr>
             </thead>
@@ -65,11 +80,31 @@
                     @forelse($kategoris as $k)
                     <tr class="hover:bg-blue-50 transition">
                         <td class="p-4 font-bold text-gray-800">{{ $k->nama_kategori }}</td>
+                        
                         <td class="p-4 text-center">
                             <span class="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full">
                                 {{ $k->bobot_persen }}%
                             </span>
                         </td>
+                        
+                        <!-- Area Render Badge Aturan Juara -->
+                        <td class="p-4 text-center">
+                            <div class="flex justify-center gap-2">
+                                @if($k->is_utama) 
+                                    <span class="bg-blue-100 text-blue-700 text-[10px] px-2.5 py-1 rounded-full font-black tracking-wider shadow-sm border border-blue-200">🏆 UTAMA</span> 
+                                @endif
+                                
+                                @if($k->is_umum) 
+                                    <span class="bg-yellow-100 text-yellow-800 text-[10px] px-2.5 py-1 rounded-full font-black tracking-wider shadow-sm border border-yellow-300">👑 UMUM</span> 
+                                @endif
+                                
+                                <!-- Jika tidak masuk keduanya -->
+                                @if(!$k->is_utama && !$k->is_umum)
+                                    <span class="text-slate-400 text-[10px] font-bold">-</span>
+                                @endif
+                            </div>
+                        </td>
+
                         <td class="p-4 text-center space-x-2">
                             <button wire:click="edit({{ $k->id }})" class="text-blue-600 font-bold hover:underline">Edit</button>
                             <button wire:click="delete({{ $k->id }})" onclick="confirm('Hapus kategori ini beserta semua item penilaian di dalamnya?') || event.stopImmediatePropagation()" class="text-red-600 font-bold hover:underline">Hapus</button>
@@ -77,7 +112,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="3" class="p-8 text-center text-gray-400">
+                        <td colspan="4" class="p-8 text-center text-gray-400">
                             Belum ada kategori untuk event ini.<br>
                             <span class="text-sm">Silakan klik tombol "+ Kategori Baru" di atas.</span>
                         </td>
@@ -85,7 +120,7 @@
                     @endforelse
                 @else
                     <tr>
-                        <td colspan="3" class="p-8 text-center text-gray-400">
+                        <td colspan="4" class="p-8 text-center text-gray-400">
                             👈 Silakan pilih Event di atas terlebih dahulu.
                         </td>
                     </tr>
