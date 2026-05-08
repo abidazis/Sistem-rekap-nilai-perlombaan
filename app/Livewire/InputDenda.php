@@ -6,6 +6,7 @@ use Livewire\Component;
 use App\Models\Lomba;
 use App\Models\Peserta;
 use App\Models\Denda;
+use App\Models\PedomanDenda; // Tambahkan ini
 use Livewire\Attributes\Layout;
 
 class InputDenda extends Component
@@ -14,25 +15,14 @@ class InputDenda extends Component
     public $selected_peserta_id;
     
     // Form Input
+    public $selected_pedoman_id = ''; // Gunakan ID pedoman
     public $jenis_pelanggaran = '';
     public $poin_minus;
     public $keterangan;
 
-    // 👇 1. TAMBAHKAN KAMUS ATURAN DENDA EVENT INI DI SINI 👇
-    public $daftar_pelanggaran = [
-        'Terlambat saat daftar ulang' => 10,
-        'Kekurangan anggota saat tampil' => 50,
-        'Mengganti anggota secara ilegal' => 50,
-        'Tidak mengikuti apel pembukaan' => 50,
-        'Tidak memasuki DP I (3x panggilan)' => 100,
-        'Tampil melebihi waktu' => 1,
-        'Melewati garis batas' => 10,
-        'Tidak mempunyai surat keterangan' => 30,
-        'Administrasi daftar ulang tidak lengkap' => 50,
-        'Peserta pingsan saat tampil' => 50,
-        'Danton pingsan saat tampil' => 100,
-        'Lainnya (Isi Manual)' => ''
-    ];
+    // Mode Master
+    public $is_master_mode = false;
+    public $nama_pelanggaran, $poin_master;
 
     public function mount()
     {
@@ -42,14 +32,18 @@ class InputDenda extends Component
         }
     }
 
-    // 👇 2. FUNGSI MAGIC LIVEWIRE: OTOMATIS MENGISI POIN SAAT DROPDOWN DIPILIH 👇
-    public function updatedJenisPelanggaran($value)
+    // MAGIC: Otomatis isi poin saat Pedoman dipilih
+    public function updatedSelectedPedomanId($value)
     {
-        // Jika pelanggaran ada di kamus, isi otomatis poinnya
-        if (array_key_exists($value, $this->daftar_pelanggaran)) {
-            $this->poin_minus = $this->daftar_pelanggaran[$value];
+        if ($value && $value != 'manual') {
+            $pedoman = PedomanDenda::find($value);
+            if ($pedoman) {
+                $this->jenis_pelanggaran = $pedoman->nama_pelanggaran;
+                $this->poin_minus = $pedoman->poin_minus;
+            }
         } else {
-            $this->poin_minus = null; // Kosongkan jika pilih "Lainnya"
+            $this->jenis_pelanggaran = '';
+            $this->poin_minus = null;
         }
     }
 
@@ -58,9 +52,11 @@ class InputDenda extends Component
     {
         $pesertas = [];
         $denda_list = [];
+        $pedomans = [];
 
         if($this->selected_lomba_id) {
             $pesertas = Peserta::where('lomba_id', $this->selected_lomba_id)->orderBy('no_urut', 'asc')->get();
+            $pedomans = PedomanDenda::where('lomba_id', $this->selected_lomba_id)->get();
         }
 
         if($this->selected_peserta_id) {
@@ -70,7 +66,8 @@ class InputDenda extends Component
         return view('livewire.input-denda', [
             'events' => Lomba::latest()->get(),
             'pesertas' => $pesertas,
-            'denda_list' => $denda_list
+            'denda_list' => $denda_list,
+            'pedomans' => $pedomans
         ]);
     }
 
@@ -91,15 +88,39 @@ class InputDenda extends Component
 
         session()->flash('message', 'Pelanggaran / Minus Poin berhasil ditambahkan!');
         
-        // Reset form
-        $this->jenis_pelanggaran = '';
-        $this->poin_minus = '';
-        $this->keterangan = '';
+        $this->reset(['jenis_pelanggaran', 'poin_minus', 'keterangan', 'selected_pedoman_id']);
     }
 
     public function hapus($id)
     {
         Denda::find($id)->delete();
         session()->flash('message', 'Data denda dibatalkan/dihapus.');
+    }
+
+    public function toggleMasterMode() 
+    { 
+        $this->is_master_mode = !$this->is_master_mode; 
+    }
+
+    public function simpanMaster()
+    {
+        $this->validate([
+            'nama_pelanggaran' => 'required',
+            'poin_master' => 'required|numeric',
+        ]);
+
+        PedomanDenda::create([
+            'lomba_id' => $this->selected_lomba_id,
+            'nama_pelanggaran' => $this->nama_pelanggaran,
+            'poin_minus' => $this->poin_master
+        ]);
+
+        $this->reset(['nama_pelanggaran', 'poin_master']);
+        session()->flash('message', 'Pedoman berhasil ditambah!');
+    }
+
+    public function hapusMaster($id) 
+    { 
+        PedomanDenda::find($id)->delete(); 
     }
 }

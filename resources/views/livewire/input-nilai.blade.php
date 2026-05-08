@@ -54,13 +54,47 @@
         <!-- LOGIKA MENCARI POSISI & HAK AKSES JURI TERPILIH -->
         @php
             $juriTerpilih = collect($juris)->firstWhere('id', $selected_juri_id);
-            // Pastikan kalau kosong, dia jadi array kosong [] bukan null
+            $posisiJuri = $juriTerpilih ? strtolower($juriTerpilih->posisi) : '';
             $allowedKategoriIds = $juriTerpilih && $juriTerpilih->kategori_ids ? $juriTerpilih->kategori_ids : [];
-            $adaTugas = false; // Variabel pendeteksi
+            $adaTugas = false;
+            
+            // DETEKSI APAKAH INI ADMIN TIMER
+            $isTimer = str_contains($posisiJuri, 'admin') || str_contains($posisiJuri, 'timer');
         @endphp
 
         <form wire:submit.prevent="simpan">
-            
+
+            <!-- ================= PANEL KHUSUS ADMIN TIMER ================= -->
+            @if($isTimer)
+                @php $adaTugas = true; @endphp <!-- Paksa tombol simpan muncul walau tidak ada form kategori -->
+                <div class="bg-gradient-to-r from-slate-800 to-slate-900 rounded-2xl shadow-xl border border-yellow-500 overflow-hidden mb-8 p-6 md:p-8 animate-fade-in-down">
+                    <div class="flex items-center justify-between mb-6 border-b border-slate-700 pb-4">
+                        <h3 class="text-yellow-400 font-black text-2xl tracking-widest uppercase flex items-center gap-3">
+                            ⏱️ INPUT WAKTU TAMPIL
+                        </h3>
+                    </div>
+
+                    <div class="flex flex-col md:flex-row gap-6 items-center justify-center">
+                        <div class="text-center">
+                            <label class="block text-slate-400 text-sm font-bold uppercase mb-2">Menit</label>
+                            <input type="number" wire:model="menit_tampil" min="0" class="w-32 md:w-40 bg-slate-900 text-white text-6xl font-black text-center rounded-xl border-2 border-slate-600 focus:border-yellow-500 focus:ring-yellow-500 py-6 shadow-inner transition" placeholder="00">
+                        </div>
+                        <div class="text-6xl font-black text-slate-500 pb-2 md:block hidden animate-pulse">:</div>
+                        <div class="text-center">
+                            <label class="block text-slate-400 text-sm font-bold uppercase mb-2">Detik</label>
+                            <input type="number" wire:model="detik_tampil" min="0" max="59" class="w-32 md:w-40 bg-slate-900 text-white text-6xl font-black text-center rounded-xl border-2 border-slate-600 focus:border-yellow-500 focus:ring-yellow-500 py-6 shadow-inner transition" placeholder="00">
+                        </div>
+                    </div>
+
+                    <div class="mt-8 bg-yellow-500/10 p-4 rounded-lg border border-yellow-500/30 text-center">
+                        <p class="text-yellow-200 text-sm font-medium">Sistem akan mengkalkulasi <b>TOTAL DETIK</b> dan menerapkan <b>DENDA OTOMATIS</b> ke rekapan akhir jika peserta melewati batas waktu maksimal event.</p>
+                    </div>
+                </div>
+            @endif
+            <!-- ============================================================== -->
+
+            <div class="grid grid-cols-1 gap-8">
+                <!-- SISA KODE LOOPING KATEGORI ANTUM DI SINI... -->
             <div class="grid grid-cols-1 gap-8">
                 @foreach($struktur_penilaian as $kategori)
                     

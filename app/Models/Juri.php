@@ -10,7 +10,9 @@ class Juri extends Model
         'lomba_id', 
         'nama', 
         'posisi', 
-        'kategori_ids' // TAMBAHKAN INI
+        'username',
+        'password',
+        'kategori_ids'
     ];
 
     // TAMBAHKAN FUNGSI CAST INI AGAR OTOMATIS JADI ARRAY

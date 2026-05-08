@@ -10,4 +10,10 @@ class Lomba extends Model
     protected $table = 'lomba'; 
     
     protected $guarded = [];
+
+    public function pedomanDenda()
+    {
+        return $this->hasMany(PedomanDenda::class);
+    }
 }
+
