@@ -4,7 +4,7 @@
             
             <div>
                 <label class="block text-slate-400 text-xs font-bold uppercase mb-1">Event:</label>
-                <select wire:model.live="selected_lomba_id" class="w-full bg-slate-800 text-white border border-slate-700 rounded p-2 text-sm">
+                <select wire:model.live="selected_lomba_id" class="w-full bg-slate-800 text-white border border-slate-700 rounded p-2 text-sm font-bold">
                     @foreach($events as $event)
                         <option value="{{ $event->id }}">{{ $event->nama_lomba }}</option>
                     @endforeach
@@ -36,7 +36,6 @@
         </div>
     </div>
 
-    <!-- NOTIFIKASI POP-UP SMART (FLOATING TOAST) -->
     @if (session()->has('message'))
         <div class="fixed top-24 left-1/2 transform -translate-x-1/2 z-50 bg-green-500 text-white px-8 py-4 rounded-full shadow-2xl border-4 border-white font-black text-lg flex items-center gap-3 animate-bounce">
             <span>✅</span> {{ session('message') }}
@@ -51,7 +50,6 @@
 
     @if($selected_peserta_id && $selected_juri_id)
         
-        <!-- LOGIKA MENCARI POSISI & HAK AKSES JURI TERPILIH -->
         @php
             $juriTerpilih = collect($juris)->firstWhere('id', $selected_juri_id);
             $posisiJuri = $juriTerpilih ? strtolower($juriTerpilih->posisi) : '';
@@ -64,9 +62,8 @@
 
         <form wire:submit.prevent="simpan">
 
-            <!-- ================= PANEL KHUSUS ADMIN TIMER ================= -->
             @if($isTimer)
-                @php $adaTugas = true; @endphp <!-- Paksa tombol simpan muncul walau tidak ada form kategori -->
+                @php $adaTugas = true; @endphp 
                 <div class="bg-gradient-to-r from-slate-800 to-slate-900 rounded-2xl shadow-xl border border-yellow-500 overflow-hidden mb-8 p-6 md:p-8 animate-fade-in-down">
                     <div class="flex items-center justify-between mb-6 border-b border-slate-700 pb-4">
                         <h3 class="text-yellow-400 font-black text-2xl tracking-widest uppercase flex items-center gap-3">
@@ -91,14 +88,9 @@
                     </div>
                 </div>
             @endif
-            <!-- ============================================================== -->
-
-            <div class="grid grid-cols-1 gap-8">
-                <!-- SISA KODE LOOPING KATEGORI ANTUM DI SINI... -->
             <div class="grid grid-cols-1 gap-8">
                 @foreach($struktur_penilaian as $kategori)
                     
-                    <!-- HANYA TAMPILKAN JIKA ID KATEGORI INI ADA DI DALAM DAFTAR TUGAS JURI -->
                     @if(is_array($allowedKategoriIds) && in_array($kategori->id, $allowedKategoriIds))
                         @php $adaTugas = true; @endphp
                         <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
@@ -121,7 +113,6 @@
                                                     {{ $item->nama_gerakan }}
                                                 </td>
 
-                                                <!-- KOLOM TOMBOL NILAI -->
                                                 <td class="py-3 px-4 w-2/3">
                                                     <div class="flex flex-nowrap items-center gap-1.5 md:gap-2 overflow-x-auto pb-2 scrollbar-hide">
                                                         @php
@@ -146,7 +137,6 @@
                                                                         value="{{ $val }}" 
                                                                         class="peer sr-only" 
                                                                     >
-                                                                    
                                                                     <div class="w-10 h-10 md:w-11 md:h-11 flex items-center justify-center border-2 rounded-lg font-bold text-base md:text-lg {{ $bgChecked }} peer-checked:text-white peer-checked:shadow-inner transition-all duration-200 ease-in-out {{ $textHover }}">
                                                                         {{ $val }}
                                                                     </div>
@@ -171,7 +161,6 @@
                 @endforeach
             </div>
 
-            <!-- JIKA JURI BELUM PUNYA TUGAS SAMA SEKALI -->
             @if(!$adaTugas)
                 <div class="text-center py-16 bg-red-50 rounded-xl border-2 border-dashed border-red-300 mt-4">
                     <div class="text-5xl mb-3">⚠️</div>
@@ -179,7 +168,6 @@
                     <p class="text-red-500 font-medium">Silakan hubungi Admin untuk mengatur centangan hak akses kategori Juri ini di menu Master Juri.</p>
                 </div>
             @else
-                <!-- TOMBOL SIMPAN (Hanya muncul jika ada tabel) -->
                 <div class="fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur border-t border-gray-300 p-4 shadow-[0_-10px_20px_rgba(0,0,0,0.1)] z-50">
                     <div class="container mx-auto flex justify-between items-center max-w-7xl">
                         <div class="text-sm text-gray-600 hidden md:flex flex-col">
@@ -207,5 +195,4 @@
             </p>
         </div>
     @endif
-
 </div>

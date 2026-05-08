@@ -4,11 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PANDARA System</title>
-    <!-- Tailwind CSS -->
     <script src="{{ asset('js/tailwind.js') }}"></script>
     @livewireStyles
     
-    <!-- SUNTIKAN CSS SAKTI PENGHILANG SCROLLBAR -->
     <style>
         /* Sembunyikan scrollbar untuk Chrome, Safari dan Opera */
         .no-scrollbar::-webkit-scrollbar {
@@ -22,20 +20,14 @@
     </style>
 </head>
 
-<!-- Tambahkan overflow-x-hidden di body untuk garansi 100% bebas scroll horizontal -->
 <body class="bg-slate-50 font-sans antialiased text-slate-800 overflow-x-hidden">
 
-    <!-- WRAPPER UTAMA (Hilangkan class flex di sini) -->
     <div x-data="{ sidebarOpen: true }" class="min-h-screen">
         
-        <!-- ============================================== -->
-        <!-- SIDEBAR / MENUBAR KIRI (FIXED)                 -->
-        <!-- ============================================== -->
         <aside 
             :class="sidebarOpen ? 'w-64' : 'w-20'"
             class="bg-slate-900 text-white transition-all duration-300 ease-in-out fixed inset-y-0 left-0 z-50 flex flex-col shadow-2xl border-r border-slate-800"
         >
-            <!-- LOGO BRANDING -->
             <div class="h-16 flex items-center justify-center border-b border-slate-800 bg-[#1e293b]/50 whitespace-nowrap">
                 <div x-show="sidebarOpen" class="text-center w-full transition-opacity duration-300">
                     <h1 class="text-xl font-black tracking-widest text-yellow-400">PANDARA</h1>
@@ -45,7 +37,6 @@
                 </div>
             </div>
 
-            <!-- DAFTAR MENU (Tambahkan class no-scrollbar di sini) -->
             <nav class="flex-1 py-4 flex flex-col gap-2 overflow-y-auto no-scrollbar">
                 
                 <a href="{{ route('dashboard') }}" wire:navigate class="flex items-center mx-3 px-3 py-3 rounded-lg transition-colors {{ request()->routeIs('dashboard') ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}" :class="!sidebarOpen ? 'justify-center' : ''">
@@ -53,34 +44,35 @@
                     <span x-show="sidebarOpen" class="ml-3 font-semibold text-sm whitespace-nowrap">Dashboard</span>
                 </a>
 
-                <div x-show="sidebarOpen" class="mt-4 px-6 text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">Master Data</div>
-                <div x-show="!sidebarOpen" class="mt-4 text-center text-slate-600 text-xs">•••</div>
+                @if(auth()->check() && str_contains(strtolower(auth()->user()->posisi), 'admin'))
+                    <div x-show="sidebarOpen" class="mt-4 px-6 text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">Master Data</div>
+                    <div x-show="!sidebarOpen" class="mt-4 text-center text-slate-600 text-xs">•••</div>
 
-                <a href="{{ route('master.event') }}" wire:navigate class="flex items-center mx-3 px-3 py-3 rounded-lg transition-colors {{ request()->routeIs('master.event') ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}" :class="!sidebarOpen ? 'justify-center' : ''">
-                    <span class="text-xl">📅</span>
-                    <span x-show="sidebarOpen" class="ml-3 font-semibold text-sm whitespace-nowrap">Master Event</span>
-                </a>
-                
-                <a href="{{ route('master.kategori') }}" wire:navigate class="flex items-center mx-3 px-3 py-3 rounded-lg transition-colors {{ request()->routeIs('master.kategori') ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}" :class="!sidebarOpen ? 'justify-center' : ''">
-                    <span class="text-xl">📂</span>
-                    <span x-show="sidebarOpen" class="ml-3 font-semibold text-sm whitespace-nowrap">Kategori Lomba</span>
-                </a>
+                    <a href="{{ route('master.event') }}" wire:navigate class="flex items-center mx-3 px-3 py-3 rounded-lg transition-colors {{ request()->routeIs('master.event') ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}" :class="!sidebarOpen ? 'justify-center' : ''">
+                        <span class="text-xl">📅</span>
+                        <span x-show="sidebarOpen" class="ml-3 font-semibold text-sm whitespace-nowrap">Master Event</span>
+                    </a>
+                    
+                    <a href="{{ route('master.kategori') }}" wire:navigate class="flex items-center mx-3 px-3 py-3 rounded-lg transition-colors {{ request()->routeIs('master.kategori') ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}" :class="!sidebarOpen ? 'justify-center' : ''">
+                        <span class="text-xl">📂</span>
+                        <span x-show="sidebarOpen" class="ml-3 font-semibold text-sm whitespace-nowrap">Kategori Lomba</span>
+                    </a>
 
-                <a href="{{ route('master.format') }}" wire:navigate class="flex items-center mx-3 px-3 py-3 rounded-lg transition-colors {{ request()->routeIs('master.format') ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}" :class="!sidebarOpen ? 'justify-center' : ''">
-                    <span class="text-xl">📝</span>
-                    <span x-show="sidebarOpen" class="ml-3 font-semibold text-sm whitespace-nowrap">Format Nilai</span>
-                </a>
+                    <a href="{{ route('master.format') }}" wire:navigate class="flex items-center mx-3 px-3 py-3 rounded-lg transition-colors {{ request()->routeIs('master.format') ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}" :class="!sidebarOpen ? 'justify-center' : ''">
+                        <span class="text-xl">📝</span>
+                        <span x-show="sidebarOpen" class="ml-3 font-semibold text-sm whitespace-nowrap">Format Nilai</span>
+                    </a>
 
-                <a href="{{ route('master.peserta') }}" wire:navigate class="flex items-center mx-3 px-3 py-3 rounded-lg transition-colors {{ request()->routeIs('master.peserta') ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}" :class="!sidebarOpen ? 'justify-center' : ''">
-                    <span class="text-xl">👮‍♂️</span>
-                    <span x-show="sidebarOpen" class="ml-3 font-semibold text-sm whitespace-nowrap">Master Peserta</span>
-                </a>
+                    <a href="{{ route('master.peserta') }}" wire:navigate class="flex items-center mx-3 px-3 py-3 rounded-lg transition-colors {{ request()->routeIs('master.peserta') ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}" :class="!sidebarOpen ? 'justify-center' : ''">
+                        <span class="text-xl">👮‍♂️</span>
+                        <span x-show="sidebarOpen" class="ml-3 font-semibold text-sm whitespace-nowrap">Master Peserta</span>
+                    </a>
 
-                <a href="{{ route('master.juri') }}" wire:navigate class="flex items-center mx-3 px-3 py-3 rounded-lg transition-colors {{ request()->routeIs('master.juri') ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}" :class="!sidebarOpen ? 'justify-center' : ''">
-                    <span class="text-xl">⚖️</span>
-                    <span x-show="sidebarOpen" class="ml-3 font-semibold text-sm whitespace-nowrap">Master Juri</span>
-                </a>
-
+                    <a href="{{ route('master.juri') }}" wire:navigate class="flex items-center mx-3 px-3 py-3 rounded-lg transition-colors {{ request()->routeIs('master.juri') ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}" :class="!sidebarOpen ? 'justify-center' : ''">
+                        <span class="text-xl">⚖️</span>
+                        <span x-show="sidebarOpen" class="ml-3 font-semibold text-sm whitespace-nowrap">Master Juri</span>
+                    </a>
+                @endif
                 <div x-show="sidebarOpen" class="mt-4 px-6 text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">Operasional</div>
                 <div x-show="!sidebarOpen" class="mt-4 text-center text-slate-600 text-xs">•••</div>
 
@@ -89,10 +81,12 @@
                     <span x-show="sidebarOpen" class="ml-3 font-semibold text-sm whitespace-nowrap">INPUT NILAI</span>
                 </a>
 
-                <a href="/input-denda" wire:navigate class="flex items-center mx-3 px-3 py-3 rounded-lg transition-colors {{ request()->is('input-denda') ? 'bg-red-600 text-white font-bold shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}" :class="!sidebarOpen ? 'justify-center' : ''">
-                    <span class="text-xl">⚠️</span>
-                    <span x-show="sidebarOpen" class="ml-3 font-semibold text-sm whitespace-nowrap">Pengurangan Nilai</span>
-                </a>
+                @if(auth()->check() && str_contains(strtolower(auth()->user()->posisi), 'admin'))
+                    <a href="/input-denda" wire:navigate class="flex items-center mx-3 px-3 py-3 rounded-lg transition-colors {{ request()->is('input-denda') ? 'bg-red-600 text-white font-bold shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}" :class="!sidebarOpen ? 'justify-center' : ''">
+                        <span class="text-xl">⚠️</span>
+                        <span x-show="sidebarOpen" class="ml-3 font-semibold text-sm whitespace-nowrap">Pengurangan Nilai</span>
+                    </a>
+                @endif
 
                 <div x-show="sidebarOpen" class="mt-4 px-6 text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">Hasil Lomba</div>
                 <div x-show="!sidebarOpen" class="mt-4 text-center text-slate-600 text-xs">•••</div>
@@ -105,9 +99,6 @@
             </nav>
         </aside>
 
-        <!-- ============================================== -->
-        <!-- KONTEN UTAMA KANAN (HILANGKAN CLASS w-full)    -->
-        <!-- ============================================== -->
         <div 
             :class="sidebarOpen ? 'ml-64' : 'ml-20'"
             class="flex flex-col min-h-screen transition-all duration-300 ease-in-out"
@@ -119,17 +110,32 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                         </svg>
                     </button>
-                    <h2 class="text-lg font-black text-slate-800 hidden sm:block tracking-tight">Administrator Panel</h2>
+                    <h2 class="text-lg font-black text-slate-800 hidden sm:block tracking-tight">
+                        @if(auth()->check() && str_contains(strtolower(auth()->user()->posisi), 'admin'))
+                            Administrator Panel
+                        @else
+                            Tim Rekap Panel
+                        @endif
+                    </h2>
                 </div>
                 
-                <div class="flex items-center gap-3">
-                    <div class="text-right hidden sm:block">
-                        <p class="text-sm font-bold text-slate-800">Panitia Rekap</p>
-                        <p class="text-[10px] text-green-600 font-bold uppercase tracking-wider">● Online</p>
-                    </div>
-                    <div class="h-9 w-9 rounded-full bg-slate-800 flex items-center justify-center text-white font-bold shadow-md">
-                        P
-                    </div>
+                <div class="flex items-center gap-4">
+                    @auth
+                        <div class="text-right hidden sm:block">
+                            <p class="text-sm font-bold text-slate-800">{{ auth()->user()->nama }}</p>
+                            <p class="text-[10px] text-green-600 font-bold uppercase tracking-wider">● Online ({{ auth()->user()->posisi }})</p>
+                        </div>
+                        <div class="h-9 w-9 rounded-full bg-slate-800 flex items-center justify-center text-white font-bold shadow-md">
+                            {{ substr(auth()->user()->nama, 0, 1) }}
+                        </div>
+                        
+                        <form method="POST" action="{{ route('logout') }}" class="ml-2 border-l pl-4 border-slate-200">
+                            @csrf
+                            <button type="submit" class="text-xs font-bold text-red-600 hover:text-red-800 hover:underline">
+                                Logout
+                            </button>
+                        </form>
+                    @endauth
                 </div>
             </header>
 

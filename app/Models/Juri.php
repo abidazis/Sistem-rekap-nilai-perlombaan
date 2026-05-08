@@ -2,10 +2,15 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Auth\User as Authenticatable; // Ganti ini
+use Illuminate\Notifications\Notifiable;
 
-class Juri extends Model
+class Juri extends Authenticatable // Ganti ini
 {
+    use Notifiable;
+
+    protected $table = 'juri';
+
     protected $fillable = [
         'lomba_id', 
         'nama', 
@@ -15,16 +20,14 @@ class Juri extends Model
         'kategori_ids'
     ];
 
-    // TAMBAHKAN FUNGSI CAST INI AGAR OTOMATIS JADI ARRAY
+    protected $hidden = [
+        'password',
+    ];
+
     protected $casts = [
         'kategori_ids' => 'array',
     ];
-    // INI KUNCINYA: Paksa baca tabel 'juri' (bukan 'juris')
-    protected $table = 'juri'; 
-    
-    protected $guarded = [];
 
-    // Relasi ke Lomba
     public function lomba() 
     { 
         return $this->belongsTo(Lomba::class); 
