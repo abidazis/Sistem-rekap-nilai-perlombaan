@@ -309,7 +309,17 @@ class CetakController extends Controller
                     ->where('tingkat', $tingkat)
                     ->with('nilai', 'denda')->get();
 
-        // 1. HITUNG SKOR & RANKING UTAMA (KOLOM KIRI)
+        // 1. AMBIL URUTAN TIE BREAKER DARI MASTER EVENT (DIJADIKAN INTEGER)
+        $tieBreakersAktif = is_array($lomba->tie_breakers) ? array_map('intval', array_filter($lomba->tie_breakers)) : [];
+        
+        // Siapkan data Kolom Tambahan Tie-Breaker untuk Header PDF
+        $tb_kategoris = collect();
+        foreach($tieBreakersAktif as $tb_id) {
+            $k = $kategoris->where('id', $tb_id)->first();
+            if($k) $tb_kategoris->push($k);
+        }
+
+        // 2. HITUNG & SORTING RANKING UTAMA DENGAN LOGIC SAKTI (SAMA KAYA LEADERBOARD)
         $ranked = $pesertas->map(function($p) use ($kategoris) {
             $total_kotor = 0;
             $skor_kat = [];
@@ -321,35 +331,73 @@ class CetakController extends Controller
             $p->grand_total = $total_kotor - $p->denda->sum('poin_minus');
             $p->skor_kategori = $skor_kat;
             return $p;
-        })->sortByDesc('grand_total')->values();
+        })->sort(function($a, $b) use ($tieBreakersAktif) {
+            // A. Cek Grand Total Dulu
+            if ($a->grand_total != $b->grand_total) {
+                return $b->grand_total <=> $a->grand_total;
+            }
+            // B. Kalau Seri, Adu Tie-Breaker (PBB, Vafor, dll)
+            foreach ($tieBreakersAktif as $kat_id) {
+                $nilaiA = $a->skor_kategori[$kat_id] ?? 0;
+                $nilaiB = $b->skor_kategori[$kat_id] ?? 0;
+                if ($nilaiA != $nilaiB) {
+                    return $nilaiB <=> $nilaiA;
+                }
+            }
+            return 0;
+        })->values();
 
-        // 2. HITUNG JUARA UMUM (KOLOM KANAN)
-        $juaraUmum = $pesertas->map(function($p) use ($kategoris) {
+        // 3. HITUNG JUARA UMUM DENGAN LOGIC TIE-BREAKER
+        $juaraUmum = $ranked->map(function($p) use ($kategoris) {
             $total_umum = 0;
             foreach($kategoris as $kat) {
-                if($kat->is_umum) {
-                    $total_umum += $p->nilai->whereIn('item_penilaian_id', $kat->items->pluck('id'))->sum('nilai');
-                }
+                if($kat->is_umum) $total_umum += ($p->skor_kategori[$kat->id] ?? 0);
             }
             $p_umum = clone $p;
             $p_umum->skor_akhir_umum = $total_umum;
             return $p_umum;
-        })->sortByDesc('skor_akhir_umum')->values()->take(3);
+        })->sort(function($a, $b) use ($tieBreakersAktif) {
+            if ($a->skor_akhir_umum != $b->skor_akhir_umum) return $b->skor_akhir_umum <=> $a->skor_akhir_umum;
+            foreach ($tieBreakersAktif as $tb_id) {
+                $nA = $a->skor_kategori[$tb_id] ?? 0;
+                $nB = $b->skor_kategori[$tb_id] ?? 0;
+                if ($nA != $nB) return $nB <=> $nA;
+            }
+            return $b->grand_total <=> $a->grand_total;
+        })->values()->take(1);
 
-        // 3. AMBIL JUARA PER KATEGORI (BEST PBB, VAFOR, DLL)
+        // 4. AMBIL JUARA PER KATEGORI DENGAN LOGIC TIE-BREAKER (KOSTUM, MAKE UP, DLL)
         $bestCategories = [];
         foreach($kategoris as $kat) {
-            $item_ids = $kat->items->pluck('id');
-            
-            // Urutkan peserta berdasarkan kategori ini saja
-            $bestCategories[$kat->nama_kategori] = $pesertas->map(function($p) use ($item_ids) {
+            $sorted = $ranked->map(function($p) use ($kat) {
                 $p_kat = clone $p;
-                $p_kat->skor_spesifik = $p->nilai->whereIn('item_penilaian_id', $item_ids)->sum('nilai');
+                $p_kat->skor_spesifik = $p->skor_kategori[$kat->id] ?? 0;
                 return $p_kat;
-            })->sortByDesc('skor_spesifik')->values()->take(3); // Ambil Top 3 sebagai List
+            })->sort(function($a, $b) use ($tieBreakersAktif, $kat) {
+                // Adu nilai kategori ini dulu (Misal adu nilai Kostum)
+                if ($a->skor_spesifik != $b->skor_spesifik) return $b->skor_spesifik <=> $a->skor_spesifik;
+                
+                // Jika Kostum SERI, cek Tie Breaker Prioritas (Pastikan bukan membandingkan Kostum vs Kostum lagi)
+                foreach ($tieBreakersAktif as $tb_id) {
+                    if ($tb_id == $kat->id) continue; 
+                    $nA = $a->skor_kategori[$tb_id] ?? 0;
+                    $nB = $b->skor_kategori[$tb_id] ?? 0;
+                    if ($nA != $nB) return $nB <=> $nA;
+                }
+                return $b->grand_total <=> $a->grand_total;
+            })->values()->take(3);
+
+            // Bawa datanya ke Blade
+            $bestCategories[] = [
+                'kategori' => $kat,
+                'pesertas' => $sorted
+            ];
         }
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('cetak.pengumuman-pdf', compact('lomba', 'tingkat', 'ranked', 'juaraUmum', 'bestCategories'));
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('cetak.pengumuman-pdf', compact('lomba', 'tingkat', 'ranked', 'juaraUmum', 'bestCategories', 'tb_kategoris'));
+
+        // Kirim variabel tb_kategoris ke PDF
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('cetak.pengumuman-pdf', compact('lomba', 'tingkat', 'ranked', 'juaraUmum', 'bestCategories', 'tb_kategoris'));
         $pdf->setPaper('A4', 'portrait'); 
         return $pdf->stream("PENGUMUMAN_JUARA_".strtoupper($tingkat).".pdf");
     }

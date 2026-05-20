@@ -4,29 +4,38 @@ namespace App\Livewire;
 
 use Livewire\Component;
 use App\Models\Lomba;
+use App\Models\KategoriPenilaian;
 use Livewire\Attributes\Layout;
 
 class MasterEvent extends Component
 {
-    // 1. Variabel Form
+    // 1. Variabel Form Event
     public $nama_lomba, $tanggal_pelaksanaan, $lokasi, $durasi_maksimal_detik = 600;
     public $lomba_id;
     
-    // 2. Mode (Apakah sedang nambah data atau tidak)
+    // 2. Variabel Pengaturan Tambahan (Klasemen & Tie Breaker)
+    public $format_juara = 'all_harapan';
+    public $tie_breakers = []; // Akan berisi array dari id kategori yang dipilih
+
+    // 3. Mode (Apakah sedang nambah data atau tidak)
     public $is_create = false;
     public $is_edit = false;
 
-    // Supaya layout tetap jalan
     #[Layout('layouts.app')]
     public function render()
     {
+        // Ambil daftar kategori berdasarkan lomba yang sedang di-edit (jika ada)
+        $kategoris = [];
+        if ($this->lomba_id) {
+            $kategoris = KategoriPenilaian::where('lomba_id', $this->lomba_id)->get();
+        }
+
         return view('livewire.master-event', [
-            // Ambil data terbaru dari database
-            'events' => Lomba::latest()->get()
+            'events' => Lomba::latest()->get(),
+            'kategoris' => $kategoris // Lempar ke view
         ]);
     }
 
-    // Fungsi: Munculkan Form Tambah
     public function create()
     {
         $this->resetFields();
@@ -34,7 +43,6 @@ class MasterEvent extends Component
         $this->is_edit = false;
     }
 
-    // Fungsi: Simpan Data Baru
     public function store()
     {
         // Validasi
@@ -51,14 +59,14 @@ class MasterEvent extends Component
             'tanggal_pelaksanaan' => $this->tanggal_pelaksanaan,
             'lokasi' => $this->lokasi,
             'durasi_maksimal_detik' => $this->durasi_maksimal_detik,
+            'format_juara' => $this->format_juara, // Default masuk
             'status_aktif' => true
         ]);
 
         session()->flash('message', 'Event Berhasil Ditambahkan!');
-        $this->cancel(); // Tutup form
+        $this->cancel();
     }
 
-    // Fungsi: Edit Data
     public function edit($id)
     {
         $lomba = Lomba::find($id);
@@ -67,17 +75,23 @@ class MasterEvent extends Component
         $this->tanggal_pelaksanaan = $lomba->tanggal_pelaksanaan;
         $this->lokasi = $lomba->lokasi;
         $this->durasi_maksimal_detik = $lomba->durasi_maksimal_detik;
+        
+        // Load data pengaturan tambahan
+        $this->format_juara = $lomba->format_juara ?? 'all_harapan';
+        $this->tie_breakers = is_array($lomba->tie_breakers) ? $lomba->tie_breakers : [];
 
-        $this->is_create = true; // Kita pakai form yang sama
+        $this->is_create = true; 
         $this->is_edit = true;
     }
 
-    // Fungsi: Update Data
     public function update()
     {
+        // 🚨 PERBAIKAN: Masukkan variabel durasi_maksimal_detik ke validasi!
         $this->validate([
             'nama_lomba' => 'required',
             'tanggal_pelaksanaan' => 'required|date',
+            'lokasi' => 'required',
+            'durasi_maksimal_detik' => 'required|numeric',
         ]);
 
         $lomba = Lomba::find($this->lomba_id);
@@ -86,20 +100,20 @@ class MasterEvent extends Component
             'tanggal_pelaksanaan' => $this->tanggal_pelaksanaan,
             'lokasi' => $this->lokasi,
             'durasi_maksimal_detik' => $this->durasi_maksimal_detik,
+            'format_juara' => $this->format_juara,
+            'tie_breakers' => $this->tie_breakers // Simpan array ke DB
         ]);
 
         session()->flash('message', 'Event Berhasil Diupdate!');
         $this->cancel();
     }
 
-    // Fungsi: Hapus Data
     public function delete($id)
     {
         Lomba::find($id)->delete();
         session()->flash('message', 'Event Berhasil Dihapus!');
     }
 
-    // Fungsi: Batal / Tutup Form
     public function cancel()
     {
         $this->is_create = false;
@@ -113,5 +127,7 @@ class MasterEvent extends Component
         $this->tanggal_pelaksanaan = '';
         $this->lokasi = '';
         $this->durasi_maksimal_detik = 600;
+        $this->format_juara = 'all_harapan';
+        $this->tie_breakers = [];
     }
 }

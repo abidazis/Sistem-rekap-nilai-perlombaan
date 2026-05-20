@@ -92,17 +92,17 @@
         .text-left { text-align: left !important; padding-left: 4px !important; }
         .font-bold { font-weight: bold; }
 
-        /* FOOTER TANDA TANGAN JURI */
+        /* FOOTER TANDA TANGAN 5 JURI */
         .footer-ttd {
-            margin-top: 20px;
+            margin-top: 15px;
             width: 100%;
             border-collapse: collapse;
         }
         .ttd-cell {
-            width: 33.3%;
+            width: 20%; /* PERBAIKAN: Diubah jadi 20% agar muat 5 Juri rata */
             text-align: center;
             vertical-align: top;
-            font-size: 9pt;
+            font-size: 7.5pt;
         }
         .signature-line {
             margin-top: 45px;
@@ -143,15 +143,19 @@
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th width="25%">PREDIKAT</th>
-                            <th width="10%">NO</th>
+                            <th width="18%">PREDIKAT</th>
+                            <th width="8%">NO</th>
                             <th class="text-left">NAMA SEKOLAH</th>
-                            <th width="20%">TOTAL</th>
+                            <th width="12%">NILAI AKHIR</th>
+                            @if(count($tb_kategoris) > 0)
+                                <th width="12%" style="background-color: #fef08a;">{{ strtoupper($tb_kategoris->first()->nama_kategori) }}</th>
+                            @endif
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($ranked->take(25) as $idx => $p)
+                        @foreach($ranked as $idx => $p)
                             @php
+                                // Labeling
                                 $urutan = $idx + 1;
                                 if($urutan <= 3) $label = "UTAMA $urutan";
                                 elseif($urutan <= 6) $label = "HARAPAN " . ($urutan-3);
@@ -159,16 +163,30 @@
                                 elseif($urutan <= 12) $label = "BINA " . ($urutan-9);
                                 elseif($urutan <= 15) $label = "MULA " . ($urutan-12);
                                 elseif($urutan <= 18) $label = "PURWA " . ($urutan-15);
-                                elseif($urutan <= 21) $label = "PURWA " . ($urutan-18);
                                 elseif($urutan <= 21) $label = "CARAKA " . ($urutan-18);
-                                elseif($urutan <= 27) $label = "POTENSIAL " . ($urutan-21);
-                                else $label = "PERINTIS " . ($urutan-27);
+                                elseif($urutan <= 24) $label = "PERINTIS " . ($urutan-21);
+                                elseif($urutan <= 27) $label = "POTENSIAL " . ($urutan-24);
+                                else $label = "PESERTA " . ($urutan-27);
+
+                                // Deteksi Seri
+                                $is_tied = false;
+                                if ($idx > 0 && $p->grand_total == $ranked[$idx-1]->grand_total) $is_tied = true;
+                                if ($idx < count($ranked) - 1 && $p->grand_total == $ranked[$idx+1]->grand_total) $is_tied = true;
                             @endphp
                             <tr>
                                 <td class="font-bold">{{ $label }}</td>
                                 <td class="font-bold">{{ $p->no_urut }}</td>
                                 <td class="text-left font-bold">{{ strtoupper($p->nama_sekolah) }}</td>
-                                <td class="font-bold">{{ number_format($p->grand_total, 0, ',', '.') }}</td>
+                                <td class="font-bold text-blue-800" style="background-color: #f8fafc;">
+                                    {{ number_format($p->grand_total, 0, ',', '.') }}
+                                </td>
+                                @if(count($tb_kategoris) > 0)
+                                    @php $nilai_tb = number_format($p->skor_kategori[$tb_kategoris->first()->id] ?? 0, 0, ',', '.'); @endphp
+                                    @if($is_tied)
+                                        <td class="font-bold" style="background-color: #ffff00; color: #000;">{{ $nilai_tb }}</td>
+                                    @else
+                                        <td>{{ $nilai_tb }}</td> @endif
+                                @endif
                             </tr>
                         @endforeach
                     </tbody>
@@ -180,7 +198,7 @@
                 <table class="data-table">
                     @foreach($juaraUmum as $idx => $p)
                     <tr>
-                        <td width="25%" class="font-bold">UMUM {{ $idx + 1 }}</td>
+                        <td width="25%" class="font-bold">JUARA UMUM</td>
                         <td width="10%" class="font-bold">{{ $p->no_urut }}</td>
                         <td class="text-left font-bold">{{ strtoupper($p->nama_sekolah) }}</td>
                         <td width="20%" class="font-bold">{{ number_format($p->skor_akhir_umum, 0, ',', '.') }}</td>
@@ -188,20 +206,56 @@
                     @endforeach
                 </table>
 
-                @foreach($bestCategories as $nama_kat => $p_list)
-                    @if(count($p_list) > 0)
-                        <div class="table-title">BEST {{ strtoupper($nama_kat) }}</div>
-                        <table class="data-table">
-                            @foreach($p_list as $idx => $p)
+                @foreach($bestCategories as $bc)
+                    @php
+                        $kat = $bc['kategori'];
+                        $p_list = $bc['pesertas'];
+                        if(count($p_list) == 0) continue;
+                        
+                        // Cari Tie Breaker yang BUKAN kategori ini sendiri
+                        $tb_kat = $tb_kategoris->firstWhere('id', '!=', $kat->id);
+                        if (!$tb_kat && count($tb_kategoris) > 0) $tb_kat = $tb_kategoris->first(); // Safety fallback
+                    @endphp
+                    
+                    <div class="table-title">BEST {{ strtoupper($kat->nama_kategori) }}</div>
+                    <table class="data-table">
+                        <thead>
                             <tr>
-                                <td width="25%" class="font-bold">RANK {{ $idx + 1 }}</td>
-                                <td width="10%" class="font-bold">{{ $p->no_urut }}</td>
-                                <td class="text-left font-bold">{{ strtoupper($p->nama_sekolah) }}</td>
-                                <td width="20%" class="font-bold">{{ number_format($p->skor_spesifik, 0, ',', '.') }}</td>
+                                <th width="18%">RANK</th>
+                                <th width="10%">NO</th>
+                                <th class="text-left">NAMA SEKOLAH</th>
+                                <th width="15%">NILAI</th>
+                                @if($tb_kat)
+                                    <th width="15%" style="background-color: #fef08a;">{{ strtoupper($tb_kat->nama_kategori) }}</th>
+                                @endif
                             </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($p_list as $idx => $p)
+                                @php
+                                    // Deteksi Seri di Best Kategori
+                                    $is_tied = false;
+                                    if ($idx > 0 && $p->skor_spesifik == $p_list[$idx-1]->skor_spesifik) $is_tied = true;
+                                    if ($idx < count($p_list) - 1 && $p->skor_spesifik == $p_list[$idx+1]->skor_spesifik) $is_tied = true;
+                                @endphp
+                                <tr>
+                                    <td class="font-bold">RANK {{ $idx + 1 }}</td>
+                                    <td class="font-bold">{{ $p->no_urut }}</td>
+                                    <td class="text-left font-bold">{{ strtoupper($p->nama_sekolah) }}</td>
+                                    <td class="font-bold text-blue-800" style="background-color: #f8fafc;">
+                                        {{ number_format($p->skor_spesifik, 0, ',', '.') }}
+                                    </td>
+                                    @if($tb_kat)
+                                        @php $nilai_tb = number_format($p->skor_kategori[$tb_kat->id] ?? 0, 0, ',', '.'); @endphp
+                                        @if($is_tied)
+                                            <td class="font-bold" style="background-color: #ffff00; color: #000;">{{ $nilai_tb }}</td>
+                                        @else
+                                            <td>{{ $nilai_tb }}</td> @endif
+                                    @endif
+                                </tr>
                             @endforeach
-                        </table>
-                    @endif
+                        </tbody>
+                    </table>
                 @endforeach
             </td>
         </tr>
@@ -234,7 +288,7 @@
     </table>
 
     <div class="system-footer">
-        Dicetak otomatis oleh PANDARA System pada {{ date('d/m/Y H:i') }} - Bekasit, Jawa Barat
+        Dicetak otomatis oleh PANDARA System pada {{ date('d/m/Y H:i') }} - Bekasi, Jawa Barat
     </div>
 
 </body>

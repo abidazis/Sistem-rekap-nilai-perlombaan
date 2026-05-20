@@ -10,24 +10,26 @@ use Livewire\Attributes\Layout;
 
 class RekapJuara extends Component
 {
-    public $format_juara = 'all_harapan';
-    public $tie_breakers = [];
     public $selected_lomba_id;
-    public $selected_tingkat = 'SMP'; // 👈 DEFAULT TINGKAT
+    public $selected_tingkat = 'SMP';
+    public $mode_tampilan = 'utama'; // 👈 DEFAULT FILTER LEADERBOARD
+    
+    public $format_juara = 'all_harapan';
+    public $tie_breakers = []; 
 
     public function mount()
     {
         $latest = Lomba::latest()->first();
         if($latest) {
             $this->selected_lomba_id = $latest->id;
-            $this->loadPengaturan(); // Load settingan pas pertama buka
+            $this->loadPengaturan();
         }
     }
 
-    public function updatedSelectedLombaId()
-    {
-        $this->loadPengaturan();
-    }
+    public function updatedSelectedLombaId() { $this->loadPengaturan(); }
+    
+    // Saat ganti mode, kembalikan ke default jika perlu (opsional)
+    public function updatedModeTampilan() {}
 
     public function loadPengaturan()
     {
@@ -38,75 +40,76 @@ class RekapJuara extends Component
         }
     }
 
-    public function simpanPengaturan()
-    {
-        if ($this->selected_lomba_id) {
-            Lomba::where('id', $this->selected_lomba_id)->update([
-                'format_juara' => $this->format_juara,
-                'tie_breakers' => $this->tie_breakers 
-            ]);
-            
-            session()->flash('message_setting', 'Pengaturan Format & Tie-Breaker berhasil disimpan!');
-        }
-    }
-
     #[Layout('layouts.app')]
     public function render()
     {
         $pesertas = collect();
-        $kategoris = collect(); 
+        $semua_kategori = collect(); 
+        $kolom_kategori_tampil = collect(); // Kolom yang muncul di tabel sesuai mode
 
         if ($this->selected_lomba_id) {
-            // 1. Ambil Kategori dengan items
-            $kategoris = KategoriPenilaian::where('lomba_id', $this->selected_lomba_id)
+            // Ambil semua kategori
+            $semua_kategori = KategoriPenilaian::where('lomba_id', $this->selected_lomba_id)
                             ->orderBy('bobot_persen', 'desc')
-                            ->with('items')
-                            ->get();
+                            ->with('items')->get();
             
-            // 2. Ambil Peserta sesuai tingkat
+            // 1. FILTER KOLOM YANG TAMPIL DI TABEL BERDASARKAN MODE
+            if ($this->mode_tampilan == 'utama') {
+                $kolom_kategori_tampil = $semua_kategori->where('is_utama', true);
+            } elseif ($this->mode_tampilan == 'umum') {
+                $kolom_kategori_tampil = $semua_kategori->where('is_umum', true);
+            } else {
+                // Mode spesifik 1 kategori (misal milih "PBB" saja)
+                $kolom_kategori_tampil = $semua_kategori->where('id', $this->mode_tampilan);
+            }
+
+            // Ambil Peserta
             $all_peserta = Peserta::where('lomba_id', $this->selected_lomba_id)
                             ->where('tingkat', $this->selected_tingkat)
-                            ->with(['nilai', 'denda']) // Eager loading sangat penting
-                            ->get();
+                            ->with(['nilai', 'denda'])->get();
             
-            $tieBreakersAktif = $this->tie_breakers;
+            // Pastikan tie breakers di-casting ke Integer agar bisa nyambung saat nyari ID
+            $tieBreakersAktif = array_map('intval', array_filter($this->tie_breakers));
 
-            $pesertas = $all_peserta->map(function($p) use ($kategoris) {
-                $total_kotor = 0;
+            $pesertas = $all_peserta->map(function($p) use ($semua_kategori, $kolom_kategori_tampil) {
+                $total_kotor_mode_ini = 0;
                 $temp_skor_kategori = []; 
-                
-                // Pastikan nilai adalah koleksi, kalau null buat koleksi kosong
                 $nilai_peserta = $p->nilai ?? collect();
 
-                foreach($kategoris as $kat) {
-                    // Pakai map untuk memastikan semua ID adalah integer
+                // Hitung nilai SEMUA kategori untuk jaga-jaga Tie-Breaker
+                foreach($semua_kategori as $kat) {
                     $item_ids = $kat->items->pluck('id')->map(fn($id) => (int)$id)->toArray();
-                    
-                    // Gunakan filter manual untuk memastikan perbandingan tipe data yang aman
                     $raw_score = $nilai_peserta->filter(function($n) use ($item_ids) {
                         return in_array((int)$n->item_penilaian_id, $item_ids);
                     })->sum('nilai');
                     
                     $temp_skor_kategori[$kat->id] = $raw_score; 
-                    
-                    // Logika pengecualian Kostum & Make Up
-                    $nama_kat = strtolower($kat->nama_kategori);
-                    if (!str_contains($nama_kat, 'kostum') && !str_contains($nama_kat, 'make up')) {
-                        $total_kotor += $raw_score;
-                    }
+                }
+
+                // Hitung Total Kotor HANYA berdasarkan kolom yang sedang tampil di Mode saat ini
+                foreach($kolom_kategori_tampil as $kat_tampil) {
+                    $total_kotor_mode_ini += $temp_skor_kategori[$kat_tampil->id];
                 }
                 
                 $p->skor_kategori = $temp_skor_kategori; 
                 $p->total_minus = $p->denda ? $p->denda->sum('poin_minus') : 0;
-                $p->total_skor = $total_kotor - $p->total_minus;
+                
+                // Jika mode kategori spesifik, tidak usah kurangi minus. Minus hanya untuk Utama/Umum
+                if ($this->mode_tampilan != 'utama' && $this->mode_tampilan != 'umum') {
+                    $p->total_skor = $total_kotor_mode_ini; 
+                } else {
+                    $p->total_skor = $total_kotor_mode_ini - $p->total_minus;
+                }
                 
                 return $p;
+
             })->sort(function($a, $b) use ($tieBreakersAktif) {
-                // TIE-BREAKER LOGIC
+                // 2. LOGIKA TIE-BREAKER SAKTI
                 if ($a->total_skor != $b->total_skor) {
                     return $b->total_skor <=> $a->total_skor;
                 }
                 
+                // Kalau Total Skor sama, Adu Tie-Breaker dari Prioritas Master Event
                 foreach ($tieBreakersAktif as $kat_id) {
                     $nilaiA = $a->skor_kategori[$kat_id] ?? 0;
                     $nilaiB = $b->skor_kategori[$kat_id] ?? 0;
@@ -120,7 +123,8 @@ class RekapJuara extends Component
 
         return view('livewire.rekap-juara', [
             'events' => Lomba::latest()->get(),
-            'kategoris' => $kategoris, 
+            'semua_kategori' => $semua_kategori, 
+            'kolom_kategori_tampil' => $kolom_kategori_tampil,
             'ranking_peserta' => $pesertas
         ]);
     }
