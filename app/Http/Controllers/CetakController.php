@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\Lomba;
 use App\Models\Peserta;
 use App\Models\KategoriPenilaian;
+
 
 class CetakController extends Controller
 {
@@ -97,29 +99,33 @@ class CetakController extends Controller
     }
 
     // Fungsi 4: Cetak Khusus Juara Per Kategori
-    public function cetakKategori($lomba_id)
+    public function cetakKategori($lomba_id, $tingkat)
     {
-        $lomba = Lomba::findOrFail($lomba_id);
-        $kategoris = KategoriPenilaian::where('lomba_id', $lomba_id)->with('items')->get();
-        $all_peserta = Peserta::where('lomba_id', $lomba_id)->with('nilai')->get();
+        $lomba = \App\Models\Lomba::findOrFail($lomba_id);
+        $kategoris = \App\Models\KategoriPenilaian::where('lomba_id', $lomba_id)->get();
+        
+        // Ambil peserta khusus tingkat yang dipilih saja
+        $pesertas = \App\Models\Peserta::where('lomba_id', $lomba_id)
+                                       ->where('tingkat', $tingkat)
+                                       ->with('nilai')
+                                       ->get();
 
         $ranking_per_kategori = [];
-        
-        foreach($kategoris as $kat) {
+
+        foreach ($kategoris as $kat) {
             $item_ids = $kat->items->pluck('id');
             
-            // Hitung dan urutkan peserta HANYA berdasarkan kategori ini
-            $ranking = $all_peserta->map(function($p) use ($kat, $item_ids) {
-                // Kloning object agar tidak bentrok antar kategori
-                $peserta_clone = clone $p;
-                $peserta_clone->skor_kategori = $p->nilai->whereIn('item_penilaian_id', $item_ids)->sum('nilai');
-                return $peserta_clone;
+            $ranked = $pesertas->map(function($p) use ($item_ids) {
+                // WAJIB CLONE: Agar skor kategori satu tidak menimpa skor kategori lain di memori
+                $pesertaClone = clone $p; 
+                $pesertaClone->skor_kategori = $p->nilai->whereIn('item_penilaian_id', $item_ids)->sum('nilai');
+                return $pesertaClone;
             })->sortByDesc('skor_kategori')->values();
-            
-            $ranking_per_kategori[$kat->id] = $ranking;
+
+            $ranking_per_kategori[$kat->id] = $ranked;
         }
 
-        return view('cetak.kategori', compact('lomba', 'kategoris', 'ranking_per_kategori'));
+        return view('cetak.kategori', compact('lomba', 'kategoris', 'ranking_per_kategori', 'tingkat'));
     }
 
     // Fungsi 5: Cetak Lembar Penilaian Juri (LJK) Kosong
@@ -131,43 +137,220 @@ class CetakController extends Controller
         return view('cetak.ljk', compact('lomba', 'kategoris'));
     }
 
-    // Fungsi: Export Rekap Lengkap ke Excel
-    public function exportExcel($lomba_id)
-    {
-        $lomba = Lomba::findOrFail($lomba_id);
-        $kategoris = KategoriPenilaian::where('lomba_id', $lomba_id)->orderBy('bobot_persen', 'desc')->get();
-        
-        // Ambil semua peserta beserta nilainya
-        $pesertas = Peserta::where('lomba_id', $lomba_id)->with('nilai', 'denda')->get()->map(function($p) use ($kategoris) {
-            $skor_per_kategori = [];
-            $total_kotor = 0;
+    // SUNTIKAN FUNGSI PENENTU PREDIKAT KLASIK PASKIBRA
+    private function getPredikatJuara($rank, $format = 'all_harapan') {
+        $tingkat = ['UTAMA', 'MADYA', 'BINA', 'MULA', 'PURWA', 'CARAKA', 'POTENSIAL', 'PERINTIS', 'PEJUANG'];
+        $rank--; // Jadikan index 0 (0 = Juara 1)
 
+        if ($format == 'all_harapan') {
+            // Format All Trophy: UTAMA 123, Harapan UTAMA 123, MADYA 123, Harapan MADYA 123, dst.
+            $idxTingkat = floor($rank / 6);
+            if ($idxTingkat >= count($tingkat)) return "FINALIS " . ($rank + 1);
+
+            $posisi = $rank % 6; // 0,1,2 (Juara) - 3,4,5 (Harapan)
+            $nama = $tingkat[$idxTingkat];
+
+            if ($posisi < 3) return $nama . " " . ($posisi + 1);
+            return "HARAPAN " . $nama . " " . ($posisi - 2);
+        } else {
+            // Format Standard: Utama 123, Harapan Utama 123, lalu Madya 123, Bina 123 (tanpa harapan di bawah)
+            if ($rank < 3) return "UTAMA " . ($rank + 1);
+            if ($rank < 6) return "HARAPAN UTAMA " . ($rank - 2);
+
+            $idxTingkat = floor(($rank - 6) / 3) + 1; // index 1 = MADYA
+            if ($idxTingkat >= count($tingkat)) return "FINALIS " . ($rank + 1);
+
+            $posisi = ($rank % 3) + 1;
+            return $tingkat[$idxTingkat] . " " . $posisi;
+        }
+    }
+
+    // FUNGSI EXPORT EXCEL YANG SUDAH DI-UPGRADE
+    public function exportExcel($lomba_id, $tingkat)
+    {
+        $lomba = \App\Models\Lomba::findOrFail($lomba_id);
+        $kategoris = \App\Models\KategoriPenilaian::where('lomba_id', $lomba_id)->orderBy('bobot_persen', 'desc')->get();
+        $tieBreakers = is_array($lomba->tie_breakers) ? $lomba->tie_breakers : [];
+        
+        // HANYA AMBIL PESERTA SESUAI TINGKAT (SD/SMP/SMA)
+        $pesertas = \App\Models\Peserta::where('lomba_id', $lomba_id)
+                        ->where('tingkat', $tingkat)
+                        ->with('nilai', 'denda')->get()->map(function($p) use ($kategoris) {
+            $total_kotor = 0;
+            $skor_per_kategori = [];
+            
             foreach($kategoris as $kat) {
-                // Ambil semua ID item penilaian di kategori ini
                 $item_ids = $kat->items->pluck('id');
-                // Hitung total skor dari semua juri untuk kategori ini
                 $skor = $p->nilai->whereIn('item_penilaian_id', $item_ids)->sum('nilai');
-                
                 $skor_per_kategori[$kat->id] = $skor;
                 $total_kotor += $skor;
             }
 
-            $total_minus = $p->denda->sum('poin_minus');
-            
-            // Simpan ke object peserta
             $p->skor_kategori = $skor_per_kategori;
             $p->total_kotor = $total_kotor;
-            $p->total_minus = $total_minus;
-            $p->grand_total = $total_kotor - $total_minus;
+            $p->total_minus = $p->denda->sum('poin_minus');
+            $p->grand_total = $total_kotor - $p->total_minus;
             
             return $p;
-        })->sortByDesc('grand_total')->values();
+        });
 
-        // 2 Baris Ajaib untuk memaksa browser mendownloadnya sebagai file Excel (.xls)
-        $filename = "ARSIP_REKAP_" . strtoupper(str_replace(' ', '_', $lomba->nama_lomba)) . ".xls";
+        // TIE-BREAKER LOGIC SAKTI
+        $pesertas = $pesertas->sort(function($a, $b) use ($tieBreakers) {
+            if ($a->grand_total != $b->grand_total) return $b->grand_total <=> $a->grand_total; 
+            
+            foreach ($tieBreakers as $kat_id) {
+                $nilaiA = $a->skor_kategori[$kat_id] ?? 0;
+                $nilaiB = $b->skor_kategori[$kat_id] ?? 0;
+                if ($nilaiA != $nilaiB) return $nilaiB <=> $nilaiA; 
+            }
+            return 0; 
+        })->values(); 
+
+        $format = $lomba->format_juara ?? 'all_harapan';
+        $pesertas = $pesertas->map(function($p, $idx) use ($format) {
+            $p->predikat_juara = $this->getPredikatJuara($idx + 1, $format);
+            return $p;
+        });
+
+        $filename = "REKAP_KLASEMEN_" . strtoupper($tingkat) . "_" . strtoupper(str_replace(' ', '_', $lomba->nama_lomba)) . ".xls";
         header("Content-type: application/vnd.ms-excel");
         header("Content-Disposition: attachment; filename=\"$filename\"");
 
-        return view('cetak.excel', compact('lomba', 'pesertas', 'kategoris'));
+        return view('cetak.excel', compact('lomba', 'pesertas', 'kategoris', 'tieBreakers', 'tingkat'));
+    }
+
+    public function exportPengumuman($lomba_id, $tingkat)
+    {
+        $lomba = \App\Models\Lomba::findOrFail($lomba_id);
+        $kategoris = \App\Models\KategoriPenilaian::where('lomba_id', $lomba_id)->get();
+        $tieBreakers = is_array($lomba->tie_breakers) ? $lomba->tie_breakers : [];
+        
+        $all_peserta = \App\Models\Peserta::where('lomba_id', $lomba_id)
+                        ->where('tingkat', $tingkat)
+                        ->with('nilai', 'denda')->get();
+
+        // 1. HITUNG KLASEMEN GRAND TOTAL (UTAMA, HARAPAN, MADYA, BINA)
+        $pesertaGrandTotal = $all_peserta->map(function($p) use ($kategoris) {
+            $total_kotor = 0;
+            $skor_kategori = [];
+            foreach($kategoris as $kat) {
+                $skor = $p->nilai->whereIn('item_penilaian_id', $kat->items->pluck('id'))->sum('nilai');
+                $skor_kategori[$kat->id] = $skor;
+                if ($kat->is_utama) { // Hanya jumlahkan yang is_utama = true
+                    $total_kotor += $skor;
+                }
+            }
+            $p->skor_kategori = $skor_kategori;
+            $p->total_kotor = $total_kotor;
+            $p->total_minus = $p->denda->sum('poin_minus');
+            $p->grand_total = $total_kotor - $p->total_minus;
+            return $p;
+        })->sort(function($a, $b) use ($tieBreakers) {
+            if ($a->grand_total != $b->grand_total) return $b->grand_total <=> $a->grand_total; 
+            foreach ($tieBreakers as $kat_id) {
+                $nilaiA = $a->skor_kategori[$kat_id] ?? 0;
+                $nilaiB = $b->skor_kategori[$kat_id] ?? 0;
+                if ($nilaiA != $nilaiB) return $nilaiB <=> $nilaiA; 
+            }
+            return 0; 
+        })->values();
+
+        // Labeli Predikat (Fungsi getPredikatJuara harus ada di controller ini)
+        $format = $lomba->format_juara ?? 'all_harapan';
+        $pesertaGrandTotal = $pesertaGrandTotal->map(function($p, $idx) use ($format) {
+            // Jika tidak ada fungsi getPredikatJuara, kita buat manual sederhana di sini
+            $urutan = $idx + 1;
+            if($urutan <= 3) $predikat = "UTAMA $urutan";
+            elseif($urutan <= 6) $predikat = "HARAPAN " . ($urutan-3);
+            elseif($urutan <= 9) $predikat = "MADYA " . ($urutan-6);
+            elseif($urutan <= 12) $predikat = "BINA " . ($urutan-9);
+            elseif($urutan <= 15) $predikat = "MULA " . ($urutan-12);
+            else $predikat = "PURWA " . ($urutan-15);
+            
+            $p->predikat_juara = $predikat;
+            return $p;
+        });
+
+        // 2. HITUNG JUARA PER KATEGORI (BEST PBB, VAFOR, KOSTUM, DLL)
+        $rankingKategori = [];
+        foreach($kategoris as $kat) {
+            $rankingKategori[$kat->nama_kategori] = $all_peserta->map(function($p) use ($kat) {
+                $p_clone = clone $p;
+                $p_clone->skor_spesifik = $p->nilai->whereIn('item_penilaian_id', $kat->items->pluck('id'))->sum('nilai');
+                return $p_clone;
+            })->sortByDesc('skor_spesifik')->values()->take(3); // Ambil Top 3 Saja
+        }
+
+        // 3. HITUNG JUARA UMUM (Berdasarkan centangan is_umum)
+        $pesertaUmum = $all_peserta->map(function($p) use ($kategoris) {
+            $total_umum = 0;
+            foreach($kategoris as $kat) {
+                if ($kat->is_umum) {
+                    $total_umum += $p->nilai->whereIn('item_penilaian_id', $kat->items->pluck('id'))->sum('nilai');
+                }
+            }
+            $p_clone = clone $p;
+            $p_clone->skor_umum = $total_umum;
+            return $p_clone;
+        })->sortByDesc('skor_umum')->values()->take(3);
+
+        $filename = "LEMBAR_MC_PENGUMUMAN_" . strtoupper($tingkat) . "_" . strtoupper(str_replace(' ', '_', $lomba->nama_lomba)) . ".xls";
+        header("Content-type: application/vnd.ms-excel");
+        header("Content-Disposition: attachment; filename=\"$filename\"");
+
+        return view('cetak.pengumuman-excel', compact('lomba', 'tingkat', 'pesertaGrandTotal', 'rankingKategori', 'pesertaUmum'));
+    }
+
+    public function cetakPengumumanPDF($lomba_id, $tingkat)
+    {
+        $lomba = \App\Models\Lomba::findOrFail($lomba_id);
+        $kategoris = \App\Models\KategoriPenilaian::where('lomba_id', $lomba_id)->get();
+        $pesertas = \App\Models\Peserta::where('lomba_id', $lomba_id)
+                    ->where('tingkat', $tingkat)
+                    ->with('nilai', 'denda')->get();
+
+        // 1. HITUNG SKOR & RANKING UTAMA (KOLOM KIRI)
+        $ranked = $pesertas->map(function($p) use ($kategoris) {
+            $total_kotor = 0;
+            $skor_kat = [];
+            foreach($kategoris as $kat) {
+                $s = $p->nilai->whereIn('item_penilaian_id', $kat->items->pluck('id'))->sum('nilai');
+                $skor_kat[$kat->id] = $s;
+                if($kat->is_utama) $total_kotor += $s;
+            }
+            $p->grand_total = $total_kotor - $p->denda->sum('poin_minus');
+            $p->skor_kategori = $skor_kat;
+            return $p;
+        })->sortByDesc('grand_total')->values();
+
+        // 2. HITUNG JUARA UMUM (KOLOM KANAN)
+        $juaraUmum = $pesertas->map(function($p) use ($kategoris) {
+            $total_umum = 0;
+            foreach($kategoris as $kat) {
+                if($kat->is_umum) {
+                    $total_umum += $p->nilai->whereIn('item_penilaian_id', $kat->items->pluck('id'))->sum('nilai');
+                }
+            }
+            $p_umum = clone $p;
+            $p_umum->skor_akhir_umum = $total_umum;
+            return $p_umum;
+        })->sortByDesc('skor_akhir_umum')->values()->take(3);
+
+        // 3. AMBIL JUARA PER KATEGORI (BEST PBB, VAFOR, DLL)
+        $bestCategories = [];
+        foreach($kategoris as $kat) {
+            $item_ids = $kat->items->pluck('id');
+            
+            // Urutkan peserta berdasarkan kategori ini saja
+            $bestCategories[$kat->nama_kategori] = $pesertas->map(function($p) use ($item_ids) {
+                $p_kat = clone $p;
+                $p_kat->skor_spesifik = $p->nilai->whereIn('item_penilaian_id', $item_ids)->sum('nilai');
+                return $p_kat;
+            })->sortByDesc('skor_spesifik')->values()->take(3); // Ambil Top 3 sebagai List
+        }
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('cetak.pengumuman-pdf', compact('lomba', 'tingkat', 'ranked', 'juaraUmum', 'bestCategories'));
+        $pdf->setPaper('A4', 'portrait'); 
+        return $pdf->stream("PENGUMUMAN_JUARA_".strtoupper($tingkat).".pdf");
     }
 }

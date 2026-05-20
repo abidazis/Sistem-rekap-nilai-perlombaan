@@ -238,31 +238,6 @@
         @endforeach
     @endif
 
-    <!-- ==================== BAGIAN III: AKUMULASI NILAI AKHIR (JUARA UMUM) ==================== -->
-    <div style="page-break-inside: avoid;">
-        <div style="font-weight: bold; font-size: 14px; margin-top: 30px; margin-bottom: 5px;">III. AKUMULASI NILAI AKHIR (JUARA UMUM)</div>
-        <table class="table-grand-total">
-            <tr>
-                <td style="text-align: left; font-size: 14px; width: 25%;">TOTAL POIN (UMUM)</td>
-                <td colspan="2" style="font-size: 18px; width: 50%;">{{ number_format($totalUmumKotor, 0, ',', '.') }}</td>
-                <td style="font-size: 14px; width: 25%;">GRAND TOTAL (UMUM)</td>
-            </tr>
-            <tr>
-                <td style="text-align: left; font-size: 14px;">PENAMBAHAN</td>
-                <td style="font-size: 16px; width: 10%;">0</td>
-                <td style="width: 40%;"></td>
-                <td rowspan="2" style="font-size: 48px; vertical-align: middle;">
-                    {{ number_format($totalUmumKotor - $totalMinus, 0, ',', '.') }}
-                </td>
-            </tr>
-            <tr>
-                <td style="text-align: left; font-size: 14px;">PENGURANGAN</td>
-                <td style="font-size: 16px;">{{ number_format($totalMinus, 0, ',', '.') }}</td>
-                <td></td>
-            </tr>
-        </table>
-    </div>
-
     <!-- ==================== TANDA TANGAN ==================== -->
     <table style="border: none; width: 100%; text-align: center; margin-top: 40px; font-weight: bold; page-break-inside: avoid;">
         <tr style="border: none;">

@@ -13,10 +13,20 @@
             
             <div class="mt-6 flex flex-col md:flex-row justify-between items-center border-t border-slate-700 pt-4 gap-4">
                 
-                <!-- FORM IMPORT CSV PESERTA -->
                 <form wire:submit.prevent="importDataPeserta" class="flex flex-wrap items-center gap-2 bg-slate-700 p-2 rounded-lg w-full md:w-auto">
                     <input type="file" wire:model.live="file_import_peserta" accept=".csv" class="text-sm text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-bold file:bg-blue-100 file:text-blue-800 hover:file:bg-blue-200 cursor-pointer">
                     
+                    <div class="mb-4">
+                        <label class="block text-slate-500 text-xs font-bold uppercase mb-2">1. Pilih Tingkat Sekolah</label>
+                        <select wire:model.live="tingkat" class="w-full border-2 border-blue-300 bg-blue-50 rounded-lg p-3 font-bold text-blue-900 focus:ring focus:ring-blue-200 transition">
+                            <option value="SD">SD / MI Sederajat</option>
+                            <option value="SMP">SMP / MTs Sederajat</option>
+                            <option value="SMA">SMA / SMK / MA Sederajat</option>
+                            <option value="UMUM">UMUM / PURNA PASKIBRAKA</option>
+                        </select>
+                        @error('tingkat') <span class="text-red-500 text-xs font-bold">{{ $message }}</span> @enderror
+                    </div>
+
                     <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded shadow-lg text-sm flex items-center gap-2">
                         <span wire:loading.remove wire:target="importDataPeserta">📥 Import CSV</span>
                         <span wire:loading wire:target="importDataPeserta">⏳ Loading...</span>
@@ -27,7 +37,6 @@
                     </div>
                 </form>
 
-                <!-- TOMBOL TAMBAH MANUAL -->
                 <button wire:click="create" class="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-6 rounded shadow-lg flex items-center justify-center gap-2 w-full md:w-auto">
                     <span>+ Tambah Manual</span>
                 </button>
@@ -62,6 +71,16 @@
                         <input type="text" wire:model="nama_sekolah" class="w-full border border-gray-300 p-3 rounded font-bold uppercase focus:ring-2 focus:ring-blue-500" placeholder="Contoh: SMAN 1 BEKASI">
                     </div>
 
+                    <div class="mb-4">
+                        <label class="block text-slate-500 text-xs font-bold uppercase mb-2">Tingkat Sekolah</label>
+                        <select wire:model.live="tingkat" class="w-full border-2 border-slate-200 rounded-lg p-3 font-bold text-slate-700">
+                            <option value="SD">SD / MI Sederajat</option>
+                            <option value="SMP">SMP / MTs Sederajat</option>
+                            <option value="SMA">SMA / SMK / MA Sederajat</option>
+                            <option value="UMUM">UMUM / PURNA PASKIBRAKA</option>
+                        </select>
+                    </div>
+                    
                     <div class="md:col-span-4">
                         <label class="block text-sm font-bold mb-2 text-gray-600">Nama Danton (Opsional)</label>
                         <input type="text" wire:model="nama_danton" class="w-full border border-gray-300 p-3 rounded uppercase focus:ring-2 focus:ring-blue-500" placeholder="Nama Komandan">
@@ -83,7 +102,7 @@
                 <tr>
                     <th class="p-4 border-b text-center w-20">No. Urut</th>
                     <th class="p-4 border-b">Nama Sekolah</th>
-                    <th class="p-4 border-b">Nama Danton</th>
+                    <th class="p-4 border-b text-center">Tingkat</th> <th class="p-4 border-b">Nama Danton</th>
                     <th class="p-4 border-b text-center">Status Tampil</th>
                     <th class="p-4 border-b text-center w-32">Aksi</th>
                 </tr>
@@ -98,6 +117,13 @@
                             </div>
                         </td>
                         <td class="p-4 font-bold text-gray-800 text-lg">{{ $p->nama_sekolah }}</td>
+                        
+                        <td class="p-4 text-center">
+                            <span class="bg-indigo-100 text-indigo-800 border border-indigo-200 px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest shadow-sm">
+                                {{ $p->tingkat }}
+                            </span>
+                        </td>
+
                         <td class="p-4 text-gray-600">{{ $p->nama_danton ?? '-' }}</td>
                         <td class="p-4 text-center">
                             @if($p->status_tampil == 'selesai')
@@ -115,7 +141,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="5" class="p-10 text-center text-gray-400">
+                        <td colspan="6" class="p-10 text-center text-gray-400">
                             Belum ada peserta terdaftar.<br>
                             <span class="text-sm">Silakan tambah peserta baru untuk memulai.</span>
                         </td>
@@ -123,7 +149,7 @@
                     @endforelse
                 @else
                     <tr>
-                        <td colspan="5" class="p-10 text-center text-gray-400 bg-gray-50">
+                        <td colspan="6" class="p-10 text-center text-gray-400 bg-gray-50">
                             👈 Silakan pilih Event di atas terlebih dahulu.
                         </td>
                     </tr>

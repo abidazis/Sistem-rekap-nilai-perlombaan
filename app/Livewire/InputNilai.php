@@ -15,9 +15,13 @@ class InputNilai extends Component
 {
     public $menit_tampil = 0;
     public $detik_tampil = 0;
-    public $selected_lomba_id;
-    public $selected_juri_id;
-    public $selected_peserta_id;
+    
+    // Pastikan semua default value aman
+    public $selected_lomba_id = '';
+    public $selected_tingkat = 'SMP'; // Default tingkat
+    public $selected_kategori_id = '';     
+    public $selected_juri_id = '';
+    public $selected_peserta_id = '';
 
     public $inputs = [];
 
@@ -29,62 +33,82 @@ class InputNilai extends Component
         }
     }
 
+    public function updatedSelectedLombaId() {
+        $this->selected_kategori_id = '';
+        $this->selected_juri_id = '';
+        $this->selected_peserta_id = '';
+        $this->inputs = [];
+    }
+
+    public function updatedSelectedTingkat() {
+        $this->selected_peserta_id = '';
+        $this->inputs = [];
+    }
+
     #[Layout('layouts.app')]
     public function render()
     {
-        $kategoris = [];
         $juris = [];
         $pesertas = [];
+        $all_kategoris = [];
+        $struktur_penilaian = [];
         
-        if ($this->selected_lomba_id) {
+        if (!empty($this->selected_lomba_id)) {
             $juris = Juri::where('lomba_id', $this->selected_lomba_id)->get();
+            
             $pesertas = Peserta::where('lomba_id', $this->selected_lomba_id)
+                          ->where('tingkat', $this->selected_tingkat)
                           ->orderBy('no_urut', 'asc')
                           ->get();
 
-            $kategoris = KategoriPenilaian::with(['items' => function($q) {
-                            $q->orderBy('urutan', 'asc');
-                         }])
-                         ->where('lomba_id', $this->selected_lomba_id)
+            $all_kategoris = KategoriPenilaian::where('lomba_id', $this->selected_lomba_id)->get();
+
+            $queryStruktur = KategoriPenilaian::where('lomba_id', $this->selected_lomba_id);
+            if (!empty($this->selected_kategori_id)) {
+                $queryStruktur->where('id', $this->selected_kategori_id);
+            }
+            $kategoris = $queryStruktur->get();
+
+            // 🚀 PERBAIKAN: Langsung tembak ke nama kolom aslinya
+            foreach ($kategoris as $kat) {
+                $items = ItemPenilaian::where('kategori_penilaian_id', $kat->id)
+                         ->orderBy('urutan', 'asc')
                          ->get();
+                
+                $kat->daftar_item = $items; 
+                $struktur_penilaian[] = $kat;
+            }
         }
 
         return view('livewire.input-nilai', [
             'events' => Lomba::latest()->get(),
             'juris' => $juris,
             'pesertas' => $pesertas,
-            'struktur_penilaian' => $kategoris
+            'all_kategoris' => $all_kategoris,
+            'struktur_penilaian' => $struktur_penilaian
         ]);
     }
 
-    // ==========================================
-    // PERBAIKAN 1: GABUNGKAN FUNGSI YANG KEMBAR
-    // ==========================================
     public function updatedSelectedPesertaId($peserta_id) 
     { 
-        // Load nilai yang sudah pernah diisi
         $this->loadExistingValues(); 
-
-        // Load waktu tampil jika sudah pernah diisi (Khusus Timer)
-        if($peserta_id) {
-            $peserta = \App\Models\Peserta::find($peserta_id);
-            if($peserta && $peserta->durasi_tampil_detik) {
-                $this->menit_tampil = floor($peserta->durasi_tampil_detik / 60);
-                $this->detik_tampil = $peserta->durasi_tampil_detik % 60;
-            } else {
-                $this->menit_tampil = 0;
-                $this->detik_tampil = 0;
+        if(!empty($peserta_id)) {
+            $peserta = Peserta::find($peserta_id);
+            if($peserta) {
+                $durasi = $peserta->durasi_tampil_detik ?? 0;
+                $this->menit_tampil = floor($durasi / 60);
+                $this->detik_tampil = $durasi % 60;
             }
         }
     }
 
     public function updatedSelectedJuriId() { $this->loadExistingValues(); }
+    public function updatedSelectedKategoriId() { $this->loadExistingValues(); }
 
     public function loadExistingValues()
     {
         $this->inputs = []; 
-
-        if ($this->selected_peserta_id && $this->selected_juri_id) {
+        if (!empty($this->selected_peserta_id) && !empty($this->selected_juri_id)) {
             $existing_scores = Nilai::where('peserta_id', $this->selected_peserta_id)
                                     ->where('juri_id', $this->selected_juri_id)
                                     ->get();
@@ -100,7 +124,6 @@ class InputNilai extends Component
         $juriTerpilih = Juri::find($this->selected_juri_id);
         $isTimer = $juriTerpilih && (str_contains(strtolower($juriTerpilih->posisi), 'admin') || str_contains(strtolower($juriTerpilih->posisi), 'timer'));
 
-        // Aturan validasi dinamis (Jika bukan timer, wajib isi array inputs)
         $rules = [
             'selected_juri_id' => 'required',
             'selected_peserta_id' => 'required',
@@ -108,30 +131,26 @@ class InputNilai extends Component
         
         if (!$isTimer) {
             $rules['inputs'] = 'required|array';
+            $rules['selected_kategori_id'] = 'required';
         }
 
         $this->validate($rules, [
             'selected_juri_id.required' => 'Pilih Juri dulu bro!',
             'selected_peserta_id.required' => 'Peserta belum dipilih!',
-            'inputs.required' => 'Belum ada satupun nilai yang dipilih!',
+            'selected_kategori_id.required' => 'Pilih Kategori Penilaian dulu!',
+            'inputs.required' => 'Belum ada satupun nilai yang ditekan!',
         ]);
 
-        // ==========================================
-        // PROSES SIMPAN NILAI JURI (SELAIN TIMER)
-        // ==========================================
         if (!$isTimer) {
-            // 1. FILTER INPUT (Buang yang kosong, tapi biarkan angka 0)
             $inputs_valid = is_array($this->inputs) ? array_filter($this->inputs, function($val) {
                 return $val !== "" && $val !== null; 
             }) : [];
 
-            // 2. CEK APAKAH ADA ISINYA
             if (count($inputs_valid) == 0) {
-                session()->flash('error', 'GAGAL! Belum ada satupun tombol nilai yang ditekan!');
+                session()->flash('error', 'GAGAL! Belum ada nilai yang diisi!');
                 return;
             }
 
-            // 3. PROSES SIMPAN AMAN
             foreach ($inputs_valid as $item_id => $nilai) {
                 Nilai::updateOrCreate(
                     [
@@ -139,63 +158,37 @@ class InputNilai extends Component
                         'item_penilaian_id' => $item_id,
                         'juri_id' => $this->selected_juri_id 
                     ],
-                    [
-                        'nilai' => $nilai
-                    ]
+                    ['nilai' => $nilai]
                 );
             }
         }
 
-        // ==========================================
-        // PROSES SIMPAN WAKTU & DENDA (KHUSUS TIMER)
-        // ==========================================
         if ($isTimer) {
             $total_detik = ((int)$this->menit_tampil * 60) + (int)$this->detik_tampil;
             $peserta = Peserta::find($this->selected_peserta_id);
             
             if ($peserta) {
-                // Simpan Durasi ke database
                 $peserta->update(['durasi_tampil_detik' => $total_detik]);
+                $waktu_maks_detik = 480; 
 
-                // =========================================================
-                // RUMUS AUTO DENDA WAKTU (SUDAH DISUNTIK JENIS PELANGGARAN)
-                // =========================================================
-                $waktu_maks_detik = 480; // Batas: 8 Menit (480 detik)
-                
                 if ($total_detik > $waktu_maks_detik) {
                     $kelebihan_detik = $total_detik - $waktu_maks_detik;
-                    
-                    // Denda -1 poin untuk SETIAP kelipatan 5 detik lebih
                     $kelipatan = ceil($kelebihan_detik / 5); 
                     $poin_minus = $kelipatan * 1; 
 
                     \App\Models\Denda::updateOrCreate(
-                        [
-                            'peserta_id' => $peserta->id, 
-                            'jenis_pelanggaran' => 'WAKTU TAMPIL' // <--- INI DIA OBATNYA BRO!
-                        ],
-                        [
-                            'keterangan' => "OVER TIME ($kelebihan_detik dtk)",
-                            'poin_minus' => $poin_minus
-                        ]
+                        ['peserta_id' => $peserta->id, 'jenis_pelanggaran' => 'WAKTU TAMPIL'],
+                        ['keterangan' => "OVER TIME ($kelebihan_detik dtk)", 'poin_minus' => $poin_minus]
                     );
                 } else {
-                    // Jika waktu diedit menjadi aman, hapus denda over timenya otomatis
-                    \App\Models\Denda::where('peserta_id', $peserta->id)
-                                     ->where('jenis_pelanggaran', 'WAKTU TAMPIL') // Hapus khusus denda waktu
-                                     ->delete();
+                    \App\Models\Denda::where('peserta_id', $peserta->id)->where('jenis_pelanggaran', 'WAKTU TAMPIL')->delete();
                 }
             }
         }
 
-        // 4. UPDATE STATUS PESERTA
         Peserta::where('id', $this->selected_peserta_id)->update(['status_tampil' => 'selesai']);
-
         session()->flash('message', '🔥 Data Berhasil Disimpan ke Database!');
 
-        // ==========================================
-        // PERBAIKAN 2: RESET HARUS DI LAKUKAN PALING AKHIR
-        // ==========================================
         $this->inputs = []; 
         $this->menit_tampil = 0;
         $this->detik_tampil = 0;

@@ -27,6 +27,7 @@ class CekRole
             }
         }
 
-        return redirect('/dashboard')->with('error', 'Akses Terbatas!');
+        // PERBAIKAN: Lempar ke '/' karena rute dashboard kita ada di '/'
+        return redirect('/')->with('error', 'Akses Terbatas! Anda bukan Admin.');
     }
 }

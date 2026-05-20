@@ -16,7 +16,7 @@ class MasterKategori extends Component
     public $nama_kategori, $bobot_persen;
     public $kategori_id;
     
-    // Status Aturan Juara (BARU)
+    // Status Aturan Juara
     public $is_utama = false;
     public $is_umum = false;
     
@@ -26,7 +26,6 @@ class MasterKategori extends Component
 
     public function mount()
     {
-        // Otomatis pilih event terakhir biar user gak usah klik-klik dulu
         $latest_lomba = Lomba::latest()->first();
         if ($latest_lomba) {
             $this->selected_lomba_id = $latest_lomba->id;
@@ -38,17 +37,14 @@ class MasterKategori extends Component
     {
         return view('livewire.master-kategori', [
             'events' => Lomba::orderBy('created_at', 'desc')->get(),
-            // Ambil kategori HANYA milik event yang dipilih
             'kategoris' => KategoriPenilaian::where('lomba_id', $this->selected_lomba_id)
                            ->orderBy('bobot_persen', 'desc')
                            ->get()
         ]);
     }
 
-    // Fungsi: Buka Form Tambah
     public function create()
     {
-        // Validasi: Harus pilih event dulu
         if(!$this->selected_lomba_id) {
             session()->flash('error', 'Silakan pilih event/lomba terlebih dahulu!');
             return;
@@ -59,20 +55,22 @@ class MasterKategori extends Component
         $this->is_edit = false;
     }
 
-    // Fungsi: Simpan Data
     public function store()
     {
+        // 1. VALIDASI DI SINI TEMPATNYA BRO!
         $this->validate([
             'nama_kategori' => 'required',
             'bobot_persen' => 'required|numeric|min:0|max:100',
+            'is_utama' => 'nullable|boolean', 
+            'is_umum' => 'nullable|boolean',
         ]);
 
+        // 2. SIMPAN KE DATABASE PAKAI LOGIKA 1 ATAU 0
         KategoriPenilaian::create([
-            'lomba_id' => $this->selected_lomba_id, // Otomatis masuk ke event yg dipilih
+            'lomba_id' => $this->selected_lomba_id,
             'nama_kategori' => strtoupper($this->nama_kategori),
             'bobot_persen' => $this->bobot_persen,
-            // Simpan status centangan juara (BARU)
-            'is_utama' => $this->is_utama ? 1 : 0,
+            'is_utama' => $this->is_utama ? 1 : 0, 
             'is_umum' => $this->is_umum ? 1 : 0,
         ]);
 
@@ -80,7 +78,6 @@ class MasterKategori extends Component
         $this->cancel();
     }
 
-    // Fungsi: Edit Data
     public function edit($id)
     {
         $kategori = KategoriPenilaian::find($id);
@@ -88,7 +85,6 @@ class MasterKategori extends Component
         $this->nama_kategori = $kategori->nama_kategori;
         $this->bobot_persen = $kategori->bobot_persen;
         
-        // Load status centangan juara ke form edit (BARU)
         $this->is_utama = $kategori->is_utama;
         $this->is_umum = $kategori->is_umum;
 
@@ -96,19 +92,19 @@ class MasterKategori extends Component
         $this->is_edit = true;
     }
 
-    // Fungsi: Update Data
     public function update()
     {
         $this->validate([
             'nama_kategori' => 'required',
             'bobot_persen' => 'required|numeric|min:0|max:100',
+            'is_utama' => 'nullable|boolean',
+            'is_umum' => 'nullable|boolean',
         ]);
 
         $kategori = KategoriPenilaian::find($this->kategori_id);
         $kategori->update([
             'nama_kategori' => strtoupper($this->nama_kategori),
             'bobot_persen' => $this->bobot_persen,
-            // Update status centangan juara (BARU)
             'is_utama' => $this->is_utama ? 1 : 0,
             'is_umum' => $this->is_umum ? 1 : 0,
         ]);
@@ -117,7 +113,6 @@ class MasterKategori extends Component
         $this->cancel();
     }
 
-    // Fungsi: Hapus Data
     public function delete($id)
     {
         KategoriPenilaian::find($id)->delete();
@@ -135,7 +130,6 @@ class MasterKategori extends Component
     {
         $this->nama_kategori = '';
         $this->bobot_persen = '';
-        // Reset centangan saat batal/sukses simpan (BARU)
         $this->is_utama = false;
         $this->is_umum = false;
     }

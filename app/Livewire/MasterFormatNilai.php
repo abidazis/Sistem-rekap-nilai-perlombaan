@@ -174,53 +174,72 @@ class MasterFormatNilai extends Component
     // ==========================================
     public function importData()
     {
+        // Sesuaikan 'file_import' dengan properti wire:model di file antum ya bro
         $this->validate([
-            'selected_kategori_id' => 'required',
             'file_import' => 'required', 
-        ], [
-            'selected_kategori_id.required' => 'Pilih Kategori di atas dulu!',
-            'file_import.required' => 'File belum siap! Tunggu tulisan loading hilang, baru klik Import.',
         ]);
 
         try {
             $path = $this->file_import->getRealPath();
             $lines = file($path);
 
-            $delimiter = ',';
-            if (count($lines) > 0 && strpos($lines[0], ';') !== false) {
-                $delimiter = ';';
+            // Deteksi pemisah otomatis (CSV dari saya pakai titik koma ';')
+            $delimiter = ';';
+            if (strpos($lines[0], ',') !== false) {
+                $delimiter = ',';
             }
 
-            if (count($lines) > 0 && !is_numeric(explode($delimiter, $lines[0])[0])) {
-                array_shift($lines);
-            }
+            // Buang baris pertama (Header CSV)
+            array_shift($lines);
 
             foreach ($lines as $line) {
-                $row = str_getcsv($line, $delimiter);
-                
-                if (count($row) >= 7) {
-                    $urutan = trim($row[0]);
-                    $nama_gerakan = trim($row[1]);
-                    
-                    $semua_nilai = trim($row[2]) . ' ' . trim($row[3]) . ' ' . trim($row[4]) . ' ' . trim($row[5]) . ' ' . trim($row[6]);
-                    $opsi_array = $this->convertStringToArray($semua_nilai);
+                // Lewati baris kosong
+                if (trim($line) == '') continue;
 
-                    if (!empty($nama_gerakan) && count($opsi_array) > 0) {
-                        ItemPenilaian::create([
-                            'kategori_penilaian_id' => $this->selected_kategori_id,
-                            'nama_gerakan' => strtoupper($nama_gerakan),
-                            'urutan' => is_numeric($urutan) ? $urutan : 0,
+                $row = str_getcsv(trim($line), $delimiter);
+                
+                // Pastikan ada 4 kolom: Kategori(0), Urutan(1), Nama(2), Opsi(3)
+                if (count($row) >= 4) {
+                    $nama_kategori = trim($row[0]);
+                    $urutan = trim($row[1]);
+                    $nama_gerakan = trim($row[2]);
+                    $opsi_string = trim($row[3]);
+
+                    // 1. CARI ATAU BUAT KATEGORI OTOMATIS
+                    // Jadi ga perlu repot bikin kategori manual, sistem yang buatin!
+                    $kategori = \App\Models\KategoriPenilaian::firstOrCreate(
+                        [
+                            'lomba_id' => $this->selected_lomba_id,
+                            'nama_kategori' => strtoupper($nama_kategori)
+                        ],
+                        [
+                            'bobot_persen' => 10 // Default bobot persentase
+                        ]
+                    );
+
+                    // 2. UBAH STRING OPSI JADI ARRAY (Contoh: "7,9,12" jadi array)
+                    $opsi_array = array_map('trim', explode(',', $opsi_string));
+
+                    // 3. SIMPAN KE ITEM PENILAIAN
+                    \App\Models\ItemPenilaian::updateOrCreate(
+                        [
+                            // CATATAN: Kalau di database antum namanya 'kategori_id', tolong ganti ya
+                            'kategori_penilaian_id' => $kategori->id, 
+                            'urutan' => $urutan
+                        ],
+                        [
+                            'nama_gerakan' => $nama_gerakan,
                             'opsi_nilai' => $opsi_array
-                        ]);
-                    }
+                        ]
+                    );
                 }
             }
 
-            session()->flash('message', '🔥 BERHASIL! Puluhan Gerakan CSV telah di-import dengan mulus!');
+            session()->flash('message', '🔥 BERHASIL! Ratusan Gerakan CSV telah di-import & didistribusikan secara otomatis!');
             $this->file_import = null; 
-            
+
         } catch (\Exception $e) {
-            session()->flash('error', 'Gagal memproses file: ' . $e->getMessage());
+            session()->flash('error', 'Gagal Import: ' . $e->getMessage());
         }
     }
 

@@ -28,10 +28,10 @@
                         @error('nama_lomba') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-bold mb-1 text-gray-600">Tanggal Pelaksanaan</label>
-                        <input type="date" wire:model="tanggal_pelaksanaan" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500">
-                        @error('tanggal_pelaksanaan') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                    <div class="mb-4">
+                        <label class="block text-slate-500 text-xs font-bold uppercase mb-2">Tanggal Pelaksanaan</label>
+                        <input type="date" wire:model="tanggal_pelaksanaan" class="w-full border-2 border-slate-200 rounded-lg p-3 font-bold text-slate-700 focus:border-blue-500 transition-colors">
+                        @error('tanggal_pelaksanaan') <span class="text-red-500 text-xs font-bold">{{ $message }}</span> @enderror
                     </div>
 
                     <div>
