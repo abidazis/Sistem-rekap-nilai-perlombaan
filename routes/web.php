@@ -48,5 +48,6 @@ Route::middleware('auth')->group(function () {
         Route::get('/export-excel/{lomba_id}/{tingkat}', [CetakController::class, 'exportExcel']);
         Route::get('/export-pengumuman/{lomba_id}/{tingkat}', [App\Http\Controllers\CetakController::class, 'exportPengumuman']);
         Route::get('/cetak-pengumuman-pdf/{lomba_id}/{tingkat}', [App\Http\Controllers\CetakController::class, 'cetakPengumumanPDF']);
+        Route::get('/cetak-pengumuman-excel/{lomba_id}/{tingkat}', [CetakController::class, 'cetakPengumumanExcel']);
     });
 });

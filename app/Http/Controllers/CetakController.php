@@ -165,58 +165,80 @@ class CetakController extends Controller
         }
     }
 
-    // FUNGSI EXPORT EXCEL YANG SUDAH DI-UPGRADE
-    public function exportExcel($lomba_id, $tingkat)
+    public function cetakPengumumanExcel($lomba_id, $tingkat)
     {
+        // 1. AMBIL DATA DAN LOGIKA SAKTI YANG SAMA PERSIS DENGAN PDF
         $lomba = \App\Models\Lomba::findOrFail($lomba_id);
-        $kategoris = \App\Models\KategoriPenilaian::where('lomba_id', $lomba_id)->orderBy('bobot_persen', 'desc')->get();
-        $tieBreakers = is_array($lomba->tie_breakers) ? $lomba->tie_breakers : [];
-        
-        // HANYA AMBIL PESERTA SESUAI TINGKAT (SD/SMP/SMA)
-        $pesertas = \App\Models\Peserta::where('lomba_id', $lomba_id)
-                        ->where('tingkat', $tingkat)
-                        ->with('nilai', 'denda')->get()->map(function($p) use ($kategoris) {
-            $total_kotor = 0;
-            $skor_per_kategori = [];
-            
+        $kategoris = \App\Models\KategoriPenilaian::where('lomba_id', $lomba_id)->get();
+        $pesertas = \App\Models\Peserta::where('lomba_id', $lomba_id)->where('tingkat', $tingkat)->with('nilai', 'denda')->get();
+
+        $tieBreakersAktif = is_array($lomba->tie_breakers) ? array_map('intval', array_filter($lomba->tie_breakers)) : [];
+        $tb_kategoris = collect();
+        foreach($tieBreakersAktif as $tb_id) {
+            $k = $kategoris->where('id', $tb_id)->first();
+            if($k) $tb_kategoris->push($k);
+        }
+
+        // 2. SORTING KLASEMEN UTAMA
+        $ranked = $pesertas->map(function($p) use ($kategoris) {
+            $total_kotor = 0; $skor_kat = [];
             foreach($kategoris as $kat) {
-                $item_ids = $kat->items->pluck('id');
-                $skor = $p->nilai->whereIn('item_penilaian_id', $item_ids)->sum('nilai');
-                $skor_per_kategori[$kat->id] = $skor;
-                $total_kotor += $skor;
+                $s = $p->nilai->whereIn('item_penilaian_id', $kat->items->pluck('id'))->sum('nilai');
+                $skor_kat[$kat->id] = $s;
+                if($kat->is_utama) $total_kotor += $s;
             }
-
-            $p->skor_kategori = $skor_per_kategori;
-            $p->total_kotor = $total_kotor;
-            $p->total_minus = $p->denda->sum('poin_minus');
-            $p->grand_total = $total_kotor - $p->total_minus;
-            
+            $p->grand_total = $total_kotor - $p->denda->sum('poin_minus');
+            $p->skor_kategori = $skor_kat;
             return $p;
-        });
-
-        // TIE-BREAKER LOGIC SAKTI
-        $pesertas = $pesertas->sort(function($a, $b) use ($tieBreakers) {
-            if ($a->grand_total != $b->grand_total) return $b->grand_total <=> $a->grand_total; 
-            
-            foreach ($tieBreakers as $kat_id) {
-                $nilaiA = $a->skor_kategori[$kat_id] ?? 0;
-                $nilaiB = $b->skor_kategori[$kat_id] ?? 0;
-                if ($nilaiA != $nilaiB) return $nilaiB <=> $nilaiA; 
+        })->sort(function($a, $b) use ($tieBreakersAktif) {
+            if ($a->grand_total != $b->grand_total) return $b->grand_total <=> $a->grand_total;
+            foreach ($tieBreakersAktif as $kat_id) {
+                $nA = $a->skor_kategori[$kat_id] ?? 0;
+                $nB = $b->skor_kategori[$kat_id] ?? 0;
+                if ($nA != $nB) return $nB <=> $nA;
             }
-            return 0; 
-        })->values(); 
+            return 0;
+        })->values();
 
-        $format = $lomba->format_juara ?? 'all_harapan';
-        $pesertas = $pesertas->map(function($p, $idx) use ($format) {
-            $p->predikat_juara = $this->getPredikatJuara($idx + 1, $format);
-            return $p;
-        });
+        // 3. SORTING JUARA UMUM
+        $juaraUmum = $ranked->map(function($p) use ($kategoris) {
+            $total_umum = 0;
+            foreach($kategoris as $kat) {
+                if($kat->is_umum) $total_umum += ($p->skor_kategori[$kat->id] ?? 0);
+            }
+            $p_umum = clone $p; $p_umum->skor_akhir_umum = $total_umum; return $p_umum;
+        })->sort(function($a, $b) use ($tieBreakersAktif) {
+            if ($a->skor_akhir_umum != $b->skor_akhir_umum) return $b->skor_akhir_umum <=> $a->skor_akhir_umum;
+            foreach ($tieBreakersAktif as $tb_id) {
+                $nA = $a->skor_kategori[$tb_id] ?? 0; $nB = $b->skor_kategori[$tb_id] ?? 0;
+                if ($nA != $nB) return $nB <=> $nA;
+            }
+            return $b->grand_total <=> $a->grand_total;
+        })->values()->take(3); // Ambil Top 3 untuk Excel
 
-        $filename = "REKAP_KLASEMEN_" . strtoupper($tingkat) . "_" . strtoupper(str_replace(' ', '_', $lomba->nama_lomba)) . ".xls";
-        header("Content-type: application/vnd.ms-excel");
-        header("Content-Disposition: attachment; filename=\"$filename\"");
+        // 4. SORTING BEST KATEGORI
+        $bestCategories = [];
+        foreach($kategoris as $kat) {
+            $sorted = $ranked->map(function($p) use ($kat) {
+                $p_kat = clone $p; $p_kat->skor_spesifik = $p->skor_kategori[$kat->id] ?? 0; return $p_kat;
+            })->sort(function($a, $b) use ($tieBreakersAktif, $kat) {
+                if ($a->skor_spesifik != $b->skor_spesifik) return $b->skor_spesifik <=> $a->skor_spesifik;
+                foreach ($tieBreakersAktif as $tb_id) {
+                    if ($tb_id == $kat->id) continue; 
+                    $nA = $a->skor_kategori[$tb_id] ?? 0; $nB = $b->skor_kategori[$tb_id] ?? 0;
+                    if ($nA != $nB) return $nB <=> $nA;
+                }
+                return $b->grand_total <=> $a->grand_total;
+            })->values()->take(3);
 
-        return view('cetak.excel', compact('lomba', 'pesertas', 'kategoris', 'tieBreakers', 'tingkat'));
+            $bestCategories[] = ['kategori' => $kat, 'pesertas' => $sorted];
+        }
+
+        // 5. RENDER KE FORMAT EXCEL
+        $filename = "REKAP_JUARA_" . strtoupper($tingkat) . "_" . date('Ymd') . ".xls";
+        return response(view('cetak.pengumuman-excel', compact('lomba', 'tingkat', 'ranked', 'juaraUmum', 'bestCategories', 'tb_kategoris')))
+                ->header('Content-Type', 'application/vnd.ms-excel')
+                ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
     }
 
     public function exportPengumuman($lomba_id, $tingkat)

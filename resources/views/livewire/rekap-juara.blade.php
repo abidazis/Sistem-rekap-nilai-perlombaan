@@ -15,6 +15,9 @@
                 <button onclick="window.open('/cetak-pengumuman-pdf/{{ $selected_lomba_id }}/{{ $selected_tingkat ?? 'SMP' }}', '_blank')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-3 rounded-lg shadow flex items-center gap-1">
                     📑 Lembar MC
                 </button>
+                <button onclick="window.open('/cetak-pengumuman-excel/{{ $selected_lomba_id }}/{{ $selected_tingkat ?? 'SMP' }}', '_blank')" class="bg-green-600 hover:bg-green-700 text-white text-xs font-bold py-2 px-3 rounded-lg shadow flex items-center gap-1">
+                    📊 Export Excel
+                </button>
             @endif
 
             <select wire:model.live="selected_lomba_id" class="border-2 border-slate-300 rounded-lg p-2 text-sm font-bold text-slate-700">
