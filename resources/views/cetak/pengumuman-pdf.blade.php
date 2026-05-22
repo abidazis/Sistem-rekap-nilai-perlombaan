@@ -257,6 +257,31 @@
                         </tbody>
                     </table>
                 @endforeach
+                @foreach($juaraSpesials as $js)
+                    <div class="table-title">🌟 JUARA {{ strtoupper($js['kategori']->nama_kategori) }}</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th width="18%">RANK</th>
+                                <th width="10%">NO</th>
+                                <th class="text-left">NAMA SEKOLAH</th>
+                                <th width="15%">KETERANGAN</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($js['pemenang'] as $w)
+                                <tr>
+                                    <td class="font-bold">RANK {{ $w->rank }}</td>
+                                    <td class="font-bold">{{ $w->peserta->no_urut ?? '-' }}</td>
+                                    <td class="text-left">{{ strtoupper($w->peserta->nama_sekolah ?? '-') }}</td>
+                                    <td class="font-bold text-purple-600" style="background-color: #f3e8ff;">
+                                        JUARA {{ $w->rank }}
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                @endforeach
             </td>
         </tr>
     </table>

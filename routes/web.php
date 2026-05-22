@@ -29,6 +29,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/', Dashboard::class)->name('dashboard');
     Route::get('/input-nilai', InputNilai::class)->name('input.nilai');
     Route::get('/rekap-juara', RekapJuara::class)->name('rekap.juara'); // Leaderboard
+    Route::get('/input-juara-spesial', App\Livewire\InputJuaraSpesial::class)->name('input.juara.spesial');
 
     // KHUSUS ADMIN (Akses Master Data & Cetak-cetak)
     Route::middleware('role:admin')->group(function () {

@@ -124,7 +124,10 @@ class CetakController extends Controller
 
             $ranking_per_kategori[$kat->id] = $ranked;
         }
-
+        $filename = "REKAP_KATEGORI_" . strtoupper($tingkat) . "_" . strtoupper(str_replace(' ', '_', $lomba->nama_lomba)) . ".xls";
+        header("Content-type: application/vnd.ms-excel");
+        header("Content-Disposition: attachment; filename=\"$filename\"");
+        
         return view('cetak.kategori', compact('lomba', 'kategoris', 'ranking_per_kategori', 'tingkat'));
     }
 
@@ -234,9 +237,30 @@ class CetakController extends Controller
             $bestCategories[] = ['kategori' => $kat, 'pesertas' => $sorted];
         }
 
-        // 5. RENDER KE FORMAT EXCEL
+        // 5. AMBIL DATA JUARA SPESIAL (JALUR VIP / INPUT MANUAL)
+        $kategoriSpesials = \App\Models\KategoriPenilaian::where('lomba_id', $lomba_id)
+                            ->where('is_tersendiri', true)->get();
+        
+        $juaraSpesials = [];
+        foreach ($kategoriSpesials as $ks) {
+            $winners = \App\Models\PemenangSpesial::where('lomba_id', $lomba_id)
+                        ->where('tingkat', $tingkat)
+                        ->where('kategori_penilaian_id', $ks->id)
+                        ->orderBy('rank', 'asc')
+                        ->with('peserta')
+                        ->get();
+            
+            if ($winners->count() > 0) {
+                $juaraSpesials[] = [
+                    'kategori' => $ks,
+                    'pemenang' => $winners
+                ];
+            }
+        }
+
+        // 6. RENDER KE FORMAT EXCEL
         $filename = "REKAP_JUARA_" . strtoupper($tingkat) . "_" . date('Ymd') . ".xls";
-        return response(view('cetak.pengumuman-excel', compact('lomba', 'tingkat', 'ranked', 'juaraUmum', 'bestCategories', 'tb_kategoris')))
+        return response(view('cetak.pengumuman-excel', compact('lomba', 'tingkat', 'ranked', 'juaraUmum', 'bestCategories', 'tb_kategoris', 'juaraSpesials')))
                 ->header('Content-Type', 'application/vnd.ms-excel')
                 ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
     }
@@ -251,36 +275,30 @@ class CetakController extends Controller
                         ->where('tingkat', $tingkat)
                         ->with('nilai', 'denda')->get();
 
-        // 1. HITUNG KLASEMEN GRAND TOTAL (UTAMA, HARAPAN, MADYA, BINA)
+        // 1. HITUNG KLASEMEN GRAND TOTAL
         $pesertaGrandTotal = $all_peserta->map(function($p) use ($kategoris) {
-            $total_kotor = 0;
-            $skor_kategori = [];
+            $total_kotor = 0; $skor_kategori = [];
             foreach($kategoris as $kat) {
                 $skor = $p->nilai->whereIn('item_penilaian_id', $kat->items->pluck('id'))->sum('nilai');
                 $skor_kategori[$kat->id] = $skor;
-                if ($kat->is_utama) { // Hanya jumlahkan yang is_utama = true
-                    $total_kotor += $skor;
-                }
+                if ($kat->is_utama) $total_kotor += $skor;
             }
-            $p->skor_kategori = $skor_kategori;
-            $p->total_kotor = $total_kotor;
+            $p->skor_kategori = $skor_kategori; $p->total_kotor = $total_kotor;
             $p->total_minus = $p->denda->sum('poin_minus');
             $p->grand_total = $total_kotor - $p->total_minus;
             return $p;
         })->sort(function($a, $b) use ($tieBreakers) {
             if ($a->grand_total != $b->grand_total) return $b->grand_total <=> $a->grand_total; 
             foreach ($tieBreakers as $kat_id) {
-                $nilaiA = $a->skor_kategori[$kat_id] ?? 0;
-                $nilaiB = $b->skor_kategori[$kat_id] ?? 0;
+                $nilaiA = $a->skor_kategori[$kat_id] ?? 0; $nilaiB = $b->skor_kategori[$kat_id] ?? 0;
                 if ($nilaiA != $nilaiB) return $nilaiB <=> $nilaiA; 
             }
             return 0; 
         })->values();
 
-        // Labeli Predikat (Fungsi getPredikatJuara harus ada di controller ini)
+        // Labeli Predikat
         $format = $lomba->format_juara ?? 'all_harapan';
         $pesertaGrandTotal = $pesertaGrandTotal->map(function($p, $idx) use ($format) {
-            // Jika tidak ada fungsi getPredikatJuara, kita buat manual sederhana di sini
             $urutan = $idx + 1;
             if($urutan <= 3) $predikat = "UTAMA $urutan";
             elseif($urutan <= 6) $predikat = "HARAPAN " . ($urutan-3);
@@ -289,38 +307,43 @@ class CetakController extends Controller
             elseif($urutan <= 15) $predikat = "MULA " . ($urutan-12);
             else $predikat = "PURWA " . ($urutan-15);
             
-            $p->predikat_juara = $predikat;
-            return $p;
+            $p->predikat_juara = $predikat; return $p;
         });
 
-        // 2. HITUNG JUARA PER KATEGORI (BEST PBB, VAFOR, KOSTUM, DLL)
+        // 2. HITUNG JUARA PER KATEGORI 
         $rankingKategori = [];
         foreach($kategoris as $kat) {
+            if ($kat->is_tersendiri) continue; // Skip Kategori Tersendiri di sini
             $rankingKategori[$kat->nama_kategori] = $all_peserta->map(function($p) use ($kat) {
                 $p_clone = clone $p;
                 $p_clone->skor_spesifik = $p->nilai->whereIn('item_penilaian_id', $kat->items->pluck('id'))->sum('nilai');
                 return $p_clone;
-            })->sortByDesc('skor_spesifik')->values()->take(3); // Ambil Top 3 Saja
+            })->sortByDesc('skor_spesifik')->values()->take(3);
         }
 
-        // 3. HITUNG JUARA UMUM (Berdasarkan centangan is_umum)
+        // 3. HITUNG JUARA UMUM
         $pesertaUmum = $all_peserta->map(function($p) use ($kategoris) {
             $total_umum = 0;
             foreach($kategoris as $kat) {
-                if ($kat->is_umum) {
-                    $total_umum += $p->nilai->whereIn('item_penilaian_id', $kat->items->pluck('id'))->sum('nilai');
-                }
+                if ($kat->is_umum) $total_umum += $p->nilai->whereIn('item_penilaian_id', $kat->items->pluck('id'))->sum('nilai');
             }
-            $p_clone = clone $p;
-            $p_clone->skor_umum = $total_umum;
-            return $p_clone;
+            $p_clone = clone $p; $p_clone->skor_umum = $total_umum; return $p_clone;
         })->sortByDesc('skor_umum')->values()->take(3);
+
+        // 4. AMBIL JUARA SPESIAL (JALUR MANUAL)
+        $kategoriSpesials = \App\Models\KategoriPenilaian::where('lomba_id', $lomba_id)->where('is_tersendiri', true)->get();
+        $juaraSpesials = [];
+        foreach ($kategoriSpesials as $ks) {
+            $winners = \App\Models\PemenangSpesial::where('lomba_id', $lomba_id)->where('tingkat', $tingkat)
+                        ->where('kategori_penilaian_id', $ks->id)->orderBy('rank', 'asc')->with('peserta')->get();
+            if ($winners->count() > 0) $juaraSpesials[] = ['kategori' => $ks, 'pemenang' => $winners];
+        }
 
         $filename = "LEMBAR_MC_PENGUMUMAN_" . strtoupper($tingkat) . "_" . strtoupper(str_replace(' ', '_', $lomba->nama_lomba)) . ".xls";
         header("Content-type: application/vnd.ms-excel");
         header("Content-Disposition: attachment; filename=\"$filename\"");
 
-        return view('cetak.pengumuman-excel', compact('lomba', 'tingkat', 'pesertaGrandTotal', 'rankingKategori', 'pesertaUmum'));
+        return view('cetak.pengumuman-excel', compact('lomba', 'tingkat', 'pesertaGrandTotal', 'rankingKategori', 'pesertaUmum', 'juaraSpesials'));
     }
 
     public function cetakPengumumanPDF($lomba_id, $tingkat)
@@ -328,98 +351,79 @@ class CetakController extends Controller
         $lomba = \App\Models\Lomba::findOrFail($lomba_id);
         $kategoris = \App\Models\KategoriPenilaian::where('lomba_id', $lomba_id)->get();
         $pesertas = \App\Models\Peserta::where('lomba_id', $lomba_id)
-                    ->where('tingkat', $tingkat)
-                    ->with('nilai', 'denda')->get();
+                    ->where('tingkat', $tingkat)->with('nilai', 'denda')->get();
 
-        // 1. AMBIL URUTAN TIE BREAKER DARI MASTER EVENT (DIJADIKAN INTEGER)
+        // 1. TIE BREAKER
         $tieBreakersAktif = is_array($lomba->tie_breakers) ? array_map('intval', array_filter($lomba->tie_breakers)) : [];
-        
-        // Siapkan data Kolom Tambahan Tie-Breaker untuk Header PDF
         $tb_kategoris = collect();
         foreach($tieBreakersAktif as $tb_id) {
             $k = $kategoris->where('id', $tb_id)->first();
             if($k) $tb_kategoris->push($k);
         }
 
-        // 2. HITUNG & SORTING RANKING UTAMA DENGAN LOGIC SAKTI (SAMA KAYA LEADERBOARD)
+        // 2. SORTING RANKING UTAMA
         $ranked = $pesertas->map(function($p) use ($kategoris) {
-            $total_kotor = 0;
-            $skor_kat = [];
+            $total_kotor = 0; $skor_kat = [];
             foreach($kategoris as $kat) {
                 $s = $p->nilai->whereIn('item_penilaian_id', $kat->items->pluck('id'))->sum('nilai');
                 $skor_kat[$kat->id] = $s;
                 if($kat->is_utama) $total_kotor += $s;
             }
             $p->grand_total = $total_kotor - $p->denda->sum('poin_minus');
-            $p->skor_kategori = $skor_kat;
-            return $p;
+            $p->skor_kategori = $skor_kat; return $p;
         })->sort(function($a, $b) use ($tieBreakersAktif) {
-            // A. Cek Grand Total Dulu
-            if ($a->grand_total != $b->grand_total) {
-                return $b->grand_total <=> $a->grand_total;
-            }
-            // B. Kalau Seri, Adu Tie-Breaker (PBB, Vafor, dll)
+            if ($a->grand_total != $b->grand_total) return $b->grand_total <=> $a->grand_total;
             foreach ($tieBreakersAktif as $kat_id) {
-                $nilaiA = $a->skor_kategori[$kat_id] ?? 0;
-                $nilaiB = $b->skor_kategori[$kat_id] ?? 0;
-                if ($nilaiA != $nilaiB) {
-                    return $nilaiB <=> $nilaiA;
-                }
+                $nA = $a->skor_kategori[$kat_id] ?? 0; $nB = $b->skor_kategori[$kat_id] ?? 0;
+                if ($nA != $nB) return $nB <=> $nA;
             }
             return 0;
         })->values();
 
-        // 3. HITUNG JUARA UMUM DENGAN LOGIC TIE-BREAKER
+        // 3. JUARA UMUM
         $juaraUmum = $ranked->map(function($p) use ($kategoris) {
             $total_umum = 0;
             foreach($kategoris as $kat) {
                 if($kat->is_umum) $total_umum += ($p->skor_kategori[$kat->id] ?? 0);
             }
-            $p_umum = clone $p;
-            $p_umum->skor_akhir_umum = $total_umum;
-            return $p_umum;
+            $p_umum = clone $p; $p_umum->skor_akhir_umum = $total_umum; return $p_umum;
         })->sort(function($a, $b) use ($tieBreakersAktif) {
             if ($a->skor_akhir_umum != $b->skor_akhir_umum) return $b->skor_akhir_umum <=> $a->skor_akhir_umum;
             foreach ($tieBreakersAktif as $tb_id) {
-                $nA = $a->skor_kategori[$tb_id] ?? 0;
-                $nB = $b->skor_kategori[$tb_id] ?? 0;
+                $nA = $a->skor_kategori[$tb_id] ?? 0; $nB = $b->skor_kategori[$tb_id] ?? 0;
                 if ($nA != $nB) return $nB <=> $nA;
             }
             return $b->grand_total <=> $a->grand_total;
         })->values()->take(1);
 
-        // 4. AMBIL JUARA PER KATEGORI DENGAN LOGIC TIE-BREAKER (KOSTUM, MAKE UP, DLL)
+        // 4. BEST KATEGORI
         $bestCategories = [];
         foreach($kategoris as $kat) {
+            if ($kat->is_tersendiri) continue; // Skip Kategori Tersendiri di sini
             $sorted = $ranked->map(function($p) use ($kat) {
-                $p_kat = clone $p;
-                $p_kat->skor_spesifik = $p->skor_kategori[$kat->id] ?? 0;
-                return $p_kat;
+                $p_kat = clone $p; $p_kat->skor_spesifik = $p->skor_kategori[$kat->id] ?? 0; return $p_kat;
             })->sort(function($a, $b) use ($tieBreakersAktif, $kat) {
-                // Adu nilai kategori ini dulu (Misal adu nilai Kostum)
                 if ($a->skor_spesifik != $b->skor_spesifik) return $b->skor_spesifik <=> $a->skor_spesifik;
-                
-                // Jika Kostum SERI, cek Tie Breaker Prioritas (Pastikan bukan membandingkan Kostum vs Kostum lagi)
                 foreach ($tieBreakersAktif as $tb_id) {
                     if ($tb_id == $kat->id) continue; 
-                    $nA = $a->skor_kategori[$tb_id] ?? 0;
-                    $nB = $b->skor_kategori[$tb_id] ?? 0;
+                    $nA = $a->skor_kategori[$tb_id] ?? 0; $nB = $b->skor_kategori[$tb_id] ?? 0;
                     if ($nA != $nB) return $nB <=> $nA;
                 }
                 return $b->grand_total <=> $a->grand_total;
             })->values()->take(3);
-
-            // Bawa datanya ke Blade
-            $bestCategories[] = [
-                'kategori' => $kat,
-                'pesertas' => $sorted
-            ];
+            $bestCategories[] = ['kategori' => $kat, 'pesertas' => $sorted];
         }
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('cetak.pengumuman-pdf', compact('lomba', 'tingkat', 'ranked', 'juaraUmum', 'bestCategories', 'tb_kategoris'));
+        // 5. AMBIL JUARA SPESIAL (JALUR MANUAL)
+        $kategoriSpesials = \App\Models\KategoriPenilaian::where('lomba_id', $lomba_id)->where('is_tersendiri', true)->get();
+        $juaraSpesials = [];
+        foreach ($kategoriSpesials as $ks) {
+            $winners = \App\Models\PemenangSpesial::where('lomba_id', $lomba_id)->where('tingkat', $tingkat)
+                        ->where('kategori_penilaian_id', $ks->id)->orderBy('rank', 'asc')->with('peserta')->get();
+            if ($winners->count() > 0) $juaraSpesials[] = ['kategori' => $ks, 'pemenang' => $winners];
+        }
 
-        // Kirim variabel tb_kategoris ke PDF
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('cetak.pengumuman-pdf', compact('lomba', 'tingkat', 'ranked', 'juaraUmum', 'bestCategories', 'tb_kategoris'));
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('cetak.pengumuman-pdf', compact('lomba', 'tingkat', 'ranked', 'juaraUmum', 'bestCategories', 'tb_kategoris', 'juaraSpesials'));
         $pdf->setPaper('A4', 'portrait'); 
         return $pdf->stream("PENGUMUMAN_JUARA_".strtoupper($tingkat).".pdf");
     }

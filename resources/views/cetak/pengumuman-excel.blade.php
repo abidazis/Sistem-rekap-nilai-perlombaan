@@ -123,4 +123,33 @@
         <tr><td colspan="5"></td></tr> 
     @endforeach
 
+    @if(count($juaraSpesials) > 0)
+        <tr><td colspan="5"></td></tr> 
+        <tr>
+            <th colspan="5" style="background-color: #db2777; color: #ffffff; font-size: 16px; font-weight: bold; text-align: center; border: 1px solid #000; padding: 8px;">
+                🌟 JUARA KATEGORI SPESIAL / TERSENDIRI
+            </th>
+        </tr>
+        @foreach($juaraSpesials as $js)
+            <tr>
+                <th colspan="5" style="background-color: #fce7f3; text-align: left; font-weight: bold; font-size: 14px; border: 1px solid #000; padding-top: 10px;">
+                    ► JUARA {{ strtoupper($js['kategori']->nama_kategori) }}
+                </th>
+            </tr>
+            <tr>
+                <th style="background-color: #fbcfe8; font-weight: bold; text-align: center; border: 1px solid #000;">RANK</th>
+                <th style="background-color: #fbcfe8; font-weight: bold; text-align: center; border: 1px solid #000;">NO. URUT</th>
+                <th style="background-color: #fbcfe8; font-weight: bold; text-align: center; border: 1px solid #000;">NAMA SEKOLAH / TIM</th>
+                <th colspan="2" style="background-color: #fbcfe8; font-weight: bold; text-align: center; border: 1px solid #000;">KETERANGAN</th>
+            </tr>
+            @foreach($js['pemenang'] as $w)
+                <tr>
+                    <td style="border: 1px solid #000; text-align: center; font-weight: bold;">RANK {{ $w->rank }}</td>
+                    <td style="border: 1px solid #000; text-align: center; font-weight: bold;">#{{ $w->peserta->no_urut ?? '-' }}</td>
+                    <td style="border: 1px solid #000; font-weight: bold;">{{ strtoupper($w->peserta->nama_sekolah ?? '-') }}</td>
+                    <td colspan="2" style="border: 1px solid #000; text-align: center; font-weight: bold; color: #9d174d;">JUARA {{ $w->rank }}</td>
+                </tr>
+            @endforeach
+        @endforeach
+    @endif
 </table>

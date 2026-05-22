@@ -19,6 +19,7 @@ class MasterKategori extends Component
     // Status Aturan Juara
     public $is_utama = false;
     public $is_umum = false;
+    public $is_tersendiri = false; // 👈 VARIABEL BARU UNTUK JALUR KHUSUS
     
     // Mode
     public $is_create = false;
@@ -57,21 +58,19 @@ class MasterKategori extends Component
 
     public function store()
     {
-        // 1. VALIDASI DI SINI TEMPATNYA BRO!
+        // Validasi Dinamis: Kalau tersendiri, bobot gak wajib. Kalau biasa, bobot wajib.
         $this->validate([
             'nama_kategori' => 'required',
-            'bobot_persen' => 'required|numeric|min:0|max:100',
-            'is_utama' => 'nullable|boolean', 
-            'is_umum' => 'nullable|boolean',
+            'bobot_persen' => $this->is_tersendiri ? 'nullable' : 'required|numeric|min:0|max:100',
         ]);
 
-        // 2. SIMPAN KE DATABASE PAKAI LOGIKA 1 ATAU 0
         KategoriPenilaian::create([
             'lomba_id' => $this->selected_lomba_id,
             'nama_kategori' => strtoupper($this->nama_kategori),
-            'bobot_persen' => $this->bobot_persen,
-            'is_utama' => $this->is_utama ? 1 : 0, 
-            'is_umum' => $this->is_umum ? 1 : 0,
+            'bobot_persen' => $this->is_tersendiri ? 0 : $this->bobot_persen,
+            'is_utama' => $this->is_tersendiri ? 0 : ($this->is_utama ? 1 : 0), 
+            'is_umum' => $this->is_tersendiri ? 0 : ($this->is_umum ? 1 : 0),
+            'is_tersendiri' => $this->is_tersendiri ? 1 : 0,
         ]);
 
         session()->flash('message', 'Kategori Berhasil Ditambahkan!');
@@ -87,6 +86,7 @@ class MasterKategori extends Component
         
         $this->is_utama = $kategori->is_utama;
         $this->is_umum = $kategori->is_umum;
+        $this->is_tersendiri = $kategori->is_tersendiri ?? false;
 
         $this->is_create = true;
         $this->is_edit = true;
@@ -96,17 +96,16 @@ class MasterKategori extends Component
     {
         $this->validate([
             'nama_kategori' => 'required',
-            'bobot_persen' => 'required|numeric|min:0|max:100',
-            'is_utama' => 'nullable|boolean',
-            'is_umum' => 'nullable|boolean',
+            'bobot_persen' => $this->is_tersendiri ? 'nullable' : 'required|numeric|min:0|max:100',
         ]);
 
         $kategori = KategoriPenilaian::find($this->kategori_id);
         $kategori->update([
             'nama_kategori' => strtoupper($this->nama_kategori),
-            'bobot_persen' => $this->bobot_persen,
-            'is_utama' => $this->is_utama ? 1 : 0,
-            'is_umum' => $this->is_umum ? 1 : 0,
+            'bobot_persen' => $this->is_tersendiri ? 0 : $this->bobot_persen,
+            'is_utama' => $this->is_tersendiri ? 0 : ($this->is_utama ? 1 : 0),
+            'is_umum' => $this->is_tersendiri ? 0 : ($this->is_umum ? 1 : 0),
+            'is_tersendiri' => $this->is_tersendiri ? 1 : 0,
         ]);
 
         session()->flash('message', 'Kategori Berhasil Diupdate!');
@@ -132,5 +131,6 @@ class MasterKategori extends Component
         $this->bobot_persen = '';
         $this->is_utama = false;
         $this->is_umum = false;
+        $this->is_tersendiri = false;
     }
 }

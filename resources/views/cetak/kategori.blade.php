@@ -1,80 +1,36 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <title>Juara Kategori - {{ $lomba->nama_lomba }} ({{ strtoupper($tingkat) }})</title>
-    <style>
-        body { font-family: 'Arial', sans-serif; font-size: 11px; color: #000; }
-        .kop { text-align: center; font-weight: bold; margin-bottom: 25px; border-bottom: 2px solid #000; padding-bottom: 10px; }
-        .kop h2 { margin: 2px 0; font-size: 16px; }
-        .kop h3 { margin: 2px 0; font-size: 13px; font-weight: normal; }
+<table border="0" style="font-family: Arial, sans-serif; border-collapse: collapse; width: 100%;">
+    <tr>
+        <th colspan="4" style="background-color: #1e293b; color: #ffffff; font-size: 18px; font-weight: bold; text-align: center; padding: 15px;">
+            REKAPITULASI JUARA PER KATEGORI LOMBA
+            <br>
+            {{ strtoupper($lomba->nama_lomba) }} - TINGKAT {{ strtoupper($tingkat) }} SEDERAJAT
+            <br>
+            <span style="font-size: 14px;">TANGGAL: {{ \Carbon\Carbon::parse($lomba->tanggal_pelaksanaan)->format('d F Y') }}</span>
+        </th>
+    </tr>
+    <tr><td colspan="4"></td></tr> @foreach($kategoris as $kat)
+        <tr>
+            <th colspan="4" style="background-color: #3b82f6; color: #ffffff; font-size: 14px; font-weight: bold; text-align: left; border: 1px solid #000; padding: 10px;">
+                🏆 JUARA {{ strtoupper($kat->nama_kategori) }}
+            </th>
+        </tr>
         
-        /* Layout Grid agar muat 2 tabel bersebelahan */
-        .grid-container { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 15px; }
-        .kategori-box { width: 48%; margin-bottom: 20px; break-inside: avoid; }
+        <tr>
+            <th style="background-color: #bfdbfe; font-weight: bold; text-align: center; border: 1px solid #000; width: 10%;">RANK</th>
+            <th style="background-color: #bfdbfe; font-weight: bold; text-align: center; border: 1px solid #000; width: 15%;">NO. URUT</th>
+            <th style="background-color: #bfdbfe; font-weight: bold; text-align: center; border: 1px solid #000; width: 55%;">NAMA SEKOLAH / TIM</th>
+            <th style="background-color: #bfdbfe; font-weight: bold; text-align: center; border: 1px solid #000; width: 20%;">NILAI MURNI</th>
+        </tr>
         
-        .kategori-title { 
-            font-weight: bold; 
-            font-size: 13px; 
-            margin-bottom: 0; 
-            text-align: center; 
-            background-color: #f8fafc; 
-            padding: 8px; 
-            border: 1px solid #000; 
-            border-bottom: none;
-            text-transform: uppercase;
-        }
-        
-        table { width: 100%; border-collapse: collapse; }
-        th, td { border: 1px solid #000; padding: 6px; text-align: center; }
-        th { background-color: #e2e8f0; font-weight: bold; font-size: 10px; }
-        .text-left { text-align: left; padding-left: 8px; }
-        .bold { font-weight: bold; }
-
-        @media print {
-            @page { size: A4 portrait; margin: 15mm; }
-            button { display: none; }
-            th { background-color: #e2e8f0 !important; -webkit-print-color-adjust: exact; }
-            .kategori-title { background-color: #f8fafc !important; -webkit-print-color-adjust: exact; }
-        }
-    </style>
-</head>
-<body onload="window.print()">
-
-    <div class="kop">
-        <h2>REKAPITULASI JUARA PER KATEGORI LOMBA</h2>
-        <h2>{{ strtoupper($lomba->nama_lomba) }}</h2>
-        <h3>TINGKAT {{ strtoupper($tingkat) }} SEDERAJAT</h3>
-        <h3>{{ \Carbon\Carbon::parse($lomba->tanggal_pelaksanaan)->format('d F Y') }}</h3>
-    </div>
-
-    <div class="grid-container">
-        @foreach($kategoris as $kat)
-            <div class="kategori-box">
-                <div class="kategori-title">🏆 JUARA {{ $kat->nama_kategori }}</div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th style="width: 12%">RANK</th>
-                            <th style="width: 15%">NO. URUT</th>
-                            <th class="text-left" style="width: 53%">NAMA SEKOLAH</th>
-                            <th style="width: 20%">NILAI MURNI</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($ranking_per_kategori[$kat->id]->take(25) as $index => $p)
-                        <tr>
-                            <td class="bold">{{ $index + 1 }}</td>
-                            <td>#{{ $p->no_urut }}</td>
-                            <td class="text-left bold">{{ strtoupper($p->nama_sekolah) }}</td>
-                            <td class="bold">{{ number_format($p->skor_kategori, 0, ',', '.') }}</td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
+        @foreach($ranking_per_kategori[$kat->id]->take(25) as $index => $p)
+        <tr>
+            <td style="border: 1px solid #000; text-align: center; font-weight: bold;">{{ $index + 1 }}</td>
+            <td style="border: 1px solid #000; text-align: center; font-weight: bold;">#{{ $p->no_urut }}</td>
+            <td style="border: 1px solid #000; text-align: left; font-weight: bold;">{{ strtoupper($p->nama_sekolah) }}</td>
+            <td style="border: 1px solid #000; text-align: center; font-weight: bold; color: #1e3a8a;">{{ number_format($p->skor_kategori, 0, ',', '.') }}</td>
+        </tr>
         @endforeach
-    </div>
+        
+        <tr><td colspan="4"></td></tr> @endforeach
 
-</body>
-</html>
+</table>

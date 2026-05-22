@@ -35,26 +35,38 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
                         <label class="block text-sm font-bold mb-1 text-gray-600">Nama Kategori</label>
-                        <input type="text" wire:model="nama_kategori" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500" placeholder="Contoh: PBB MURNI, VARIASI, DANTON">
+                        <input type="text" wire:model="nama_kategori" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500" placeholder="Contoh: PBB MURNI, SUPORTER, FAVORIT">
                     </div>
                     
                     <div class="col-span-1 md:col-span-2 flex flex-wrap gap-6 mt-2 p-4 bg-slate-50 rounded-lg border border-slate-200">
                         <label class="flex items-center gap-3 cursor-pointer group">
-                            <input type="checkbox" wire:model="is_utama" class="w-6 h-6 text-blue-600 rounded border-gray-300 focus:ring-blue-500 shadow-sm transition">
-                            <span class="font-bold text-slate-700 text-sm group-hover:text-blue-600 transition">🏆 Masuk Akumulasi JUARA UTAMA</span>
+                            <input type="checkbox" wire:model="is_utama" class="w-6 h-6 text-blue-600 rounded border-gray-300 focus:ring-blue-500 shadow-sm transition" @if($is_tersendiri) disabled @endif>
+                            <span class="font-bold text-slate-700 text-sm group-hover:text-blue-600 transition @if($is_tersendiri) opacity-50 @endif">🏆 Masuk Akumulasi JUARA UTAMA</span>
                         </label>
                         
                         <label class="flex items-center gap-3 cursor-pointer group">
-                            <input type="checkbox" wire:model="is_umum" class="w-6 h-6 text-yellow-500 rounded border-gray-300 focus:ring-yellow-500 shadow-sm transition">
-                            <span class="font-bold text-slate-700 text-sm group-hover:text-yellow-600 transition">👑 Masuk Akumulasi JUARA UMUM</span>
+                            <input type="checkbox" wire:model="is_umum" class="w-6 h-6 text-yellow-500 rounded border-gray-300 focus:ring-yellow-500 shadow-sm transition" @if($is_tersendiri) disabled @endif>
+                            <span class="font-bold text-slate-700 text-sm group-hover:text-yellow-600 transition @if($is_tersendiri) opacity-50 @endif">👑 Masuk Akumulasi JUARA UMUM</span>
+                        </label>
+
+                        <label class="flex items-center gap-3 cursor-pointer group border-l-2 border-slate-300 pl-4">
+                            <input type="checkbox" wire:model.live="is_tersendiri" class="w-6 h-6 text-purple-600 rounded border-gray-300 focus:ring-purple-500 shadow-sm transition">
+                            <span class="font-bold text-purple-700 text-sm group-hover:text-purple-900 transition">🌟 Kategori Spesial / Tersendiri (Input Manual)</span>
                         </label>
                     </div>
                     
-                    <div>
-                        <label class="block text-sm font-bold mb-1 text-gray-600">Bobot Nilai (%)</label>
-                        <input type="number" wire:model="bobot_persen" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500" placeholder="Contoh: 70">
-                        <span class="text-xs text-gray-400">Total bobot sebaiknya 100%</span>
-                    </div>
+                    @if(!$is_tersendiri)
+                        <div class="animate-fade-in-down">
+                            <label class="block text-sm font-bold mb-1 text-gray-600">Bobot Nilai (%)</label>
+                            <input type="number" wire:model="bobot_persen" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500" placeholder="Contoh: 70">
+                            <span class="text-xs text-gray-400">Total bobot sebaiknya 100%</span>
+                        </div>
+                    @else
+                        <div class="col-span-1 md:col-span-2 p-3 bg-purple-50 border border-purple-200 rounded text-sm text-purple-800 font-bold">
+                            💡 Kategori Tersendiri tidak menggunakan persentase bobot maupun format nilai juri. Pemenang (Rank 1, 2, 3) akan diinput manual oleh panitia.
+                        </div>
+                    @endif
+
                 </div>
                 <div class="flex justify-end gap-2">
                     <button type="button" wire:click="cancel" class="bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded">Batal</button>
