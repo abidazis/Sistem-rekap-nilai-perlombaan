@@ -166,7 +166,8 @@
                                 elseif($urutan <= 21) $label = "CARAKA " . ($urutan-18);
                                 elseif($urutan <= 24) $label = "PERINTIS " . ($urutan-21);
                                 elseif($urutan <= 27) $label = "POTENSIAL " . ($urutan-24);
-                                else $label = "PESERTA " . ($urutan-27);
+                                elseif($urutan <= 30) $label = "WIRA " . ($urutan-27);
+                                else $label = "-" . ($urutan-30);
 
                                 // Deteksi Seri
                                 $is_tied = false;
@@ -265,7 +266,7 @@
                                 <th width="18%">RANK</th>
                                 <th width="10%">NO</th>
                                 <th class="text-left">NAMA SEKOLAH</th>
-                                <th width="15%">KETERANGAN</th>
+                                <th width="15%">TOTAL POIN</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -274,8 +275,9 @@
                                     <td class="font-bold">RANK {{ $w->rank }}</td>
                                     <td class="font-bold">{{ $w->peserta->no_urut ?? '-' }}</td>
                                     <td class="text-left">{{ strtoupper($w->peserta->nama_sekolah ?? '-') }}</td>
+                                    
                                     <td class="font-bold text-purple-600" style="background-color: #f3e8ff;">
-                                        JUARA {{ $w->rank }}
+                                        {{ $w->keterangan ?? '-' }}
                                     </td>
                                 </tr>
                             @endforeach
@@ -302,11 +304,19 @@
                 <p class="signature-line">( ______________ )</p>
             </td>
             <td class="ttd-cell">
-                <p>Juri<br>(Variasi & Formasi)</p>
+                <p>Juri<br>(Variasi Formasi)</p>
                 <p class="signature-line">( ______________ )</p>
             </td>
             <td class="ttd-cell">
-                <p>Juri<br>(Kostum & Make-up)</p>
+                <p>Juri<br>(Variasi Formasi)</p>
+                <p class="signature-line">( ______________ )</p>
+            </td>
+            <td class="ttd-cell">
+                <p>Juri<br>(Kostum)</p>
+                <p class="signature-line">( ______________ )</p>
+            </td>
+            <td class="ttd-cell">
+                <p>Juri<br>(Make-up)</p>
                 <p class="signature-line">( ______________ )</p>
             </td>
         </tr>

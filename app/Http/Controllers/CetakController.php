@@ -102,7 +102,9 @@ class CetakController extends Controller
     public function cetakKategori($lomba_id, $tingkat)
     {
         $lomba = \App\Models\Lomba::findOrFail($lomba_id);
-        $kategoris = \App\Models\KategoriPenilaian::where('lomba_id', $lomba_id)->get();
+        
+        // Eager load items agar tidak N+1 query
+        $kategoris = \App\Models\KategoriPenilaian::with('items')->where('lomba_id', $lomba_id)->get();
         
         // Ambil peserta khusus tingkat yang dipilih saja
         $pesertas = \App\Models\Peserta::where('lomba_id', $lomba_id)
@@ -112,18 +114,45 @@ class CetakController extends Controller
 
         $ranking_per_kategori = [];
 
+        // 1. CARI KATEGORI PBB UNTUK TIE-BREAKER
+        // Kita cari kategori yang namanya mengandung kata "PBB"
+        $kategoriPBB = $kategoris->filter(function($k) {
+            return str_contains(strtolower($k->nama_kategori), 'pbb');
+        })->first();
+        
+        // Ambil ID item-item PBB, ubah ke array agar aman untuk whereIn
+        $item_ids_pbb = $kategoriPBB ? $kategoriPBB->items->pluck('id')->toArray() : [];
+
         foreach ($kategoris as $kat) {
-            $item_ids = $kat->items->pluck('id');
+            $item_ids = $kat->items->pluck('id')->toArray();
             
-            $ranked = $pesertas->map(function($p) use ($item_ids) {
+            $ranked = $pesertas->map(function($p) use ($item_ids, $item_ids_pbb) {
                 // WAJIB CLONE: Agar skor kategori satu tidak menimpa skor kategori lain di memori
                 $pesertaClone = clone $p; 
+                
+                // Hitung Nilai Murni Kategori yang sedang dilooping
                 $pesertaClone->skor_kategori = $p->nilai->whereIn('item_penilaian_id', $item_ids)->sum('nilai');
+                
+                // Hitung Nilai PBB khusus untuk Tie-Breaker
+                $pesertaClone->skor_pbb = $p->nilai->whereIn('item_penilaian_id', $item_ids_pbb)->sum('nilai');
+                
                 return $pesertaClone;
-            })->sortByDesc('skor_kategori')->values();
+            })->sort(function($a, $b) {
+                // 2. LOGIKA SAKTI MULTI-LEVEL SORTING
+                
+                // Lapis Pertama: Bandingkan Nilai Murni Kategori
+                if ($a->skor_kategori != $b->skor_kategori) {
+                    return $b->skor_kategori <=> $a->skor_kategori; // Descending (Besar ke kecil)
+                }
+                
+                // Lapis Kedua (JIKA SERI MUTLAK): Adu Nilai PBB!
+                return $b->skor_pbb <=> $a->skor_pbb; // Descending
+                
+            })->values(); // Reset array keys agar urutan rank 0,1,2 berurutan sempurna
 
             $ranking_per_kategori[$kat->id] = $ranked;
         }
+        
         $filename = "REKAP_KATEGORI_" . strtoupper($tingkat) . "_" . strtoupper(str_replace(' ', '_', $lomba->nama_lomba)) . ".xls";
         header("Content-type: application/vnd.ms-excel");
         header("Content-Disposition: attachment; filename=\"$filename\"");

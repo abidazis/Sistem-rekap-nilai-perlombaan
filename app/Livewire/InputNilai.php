@@ -54,8 +54,24 @@ class InputNilai extends Component
         $struktur_penilaian = [];
         
         if (!empty($this->selected_lomba_id)) {
-            $juris = Juri::where('lomba_id', $this->selected_lomba_id)->get();
             
+            // 🚀 1. FILTER JURI MENGGUNAKAN LOGIKA JSON ARRAY
+            $queryJuri = Juri::where('lomba_id', $this->selected_lomba_id);
+
+            if (!empty($this->selected_kategori_id)) {
+                $queryJuri->where(function($q) {
+                    // Cari apakah ID Kategori terpilih ada di dalam array kategori_ids
+                    $q->whereJsonContains('kategori_ids', (string) $this->selected_kategori_id)
+                      ->orWhereJsonContains('kategori_ids', (int) $this->selected_kategori_id)
+                      // Pengecualian krusial: Akun Timer/Admin tetap lolos
+                      ->orWhere('posisi', 'like', '%timer%')
+                      ->orWhere('posisi', 'like', '%admin%');
+                });
+            }
+            
+            $juris = $queryJuri->get();
+            
+            // 2. SISA KODE ANTUM TETAP SAMA
             $pesertas = Peserta::where('lomba_id', $this->selected_lomba_id)
                           ->where('tingkat', $this->selected_tingkat)
                           ->orderBy('no_urut', 'asc')
@@ -69,7 +85,6 @@ class InputNilai extends Component
             }
             $kategoris = $queryStruktur->get();
 
-            // 🚀 PERBAIKAN: Langsung tembak ke nama kolom aslinya
             foreach ($kategoris as $kat) {
                 $items = ItemPenilaian::where('kategori_penilaian_id', $kat->id)
                          ->orderBy('urutan', 'asc')

@@ -43,6 +43,10 @@
                     <span class="text-xl">🏠</span>
                     <span x-show="sidebarOpen" class="ml-3 font-semibold text-sm whitespace-nowrap">Dashboard</span>
                 </a>
+                <a href="/rekap-juara" wire:navigate class="flex items-center mx-3 px-3 py-3 rounded-lg transition-colors {{ request()->is('rekap-juara') ? 'bg-yellow-500 text-slate-900 font-bold shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}" :class="!sidebarOpen ? 'justify-center' : ''">
+                    <span class="text-xl">🏆</span>
+                    <span x-show="sidebarOpen" class="ml-3 font-semibold text-sm whitespace-nowrap">LEADERBOARD</span>
+                </a>
 
                 @if(auth()->check() && str_contains(strtolower(auth()->user()->posisi), 'admin'))
                     <div x-show="sidebarOpen" class="mt-4 px-6 text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">Master Data</div>
@@ -92,14 +96,8 @@
                     </a>
                 @endif
 
-                <div x-show="sidebarOpen" class="mt-4 px-6 text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">Hasil Lomba</div>
-                <div x-show="!sidebarOpen" class="mt-4 text-center text-slate-600 text-xs">•••</div>
-
-                <a href="/rekap-juara" wire:navigate class="flex items-center mx-3 px-3 py-3 rounded-lg transition-colors {{ request()->is('rekap-juara') ? 'bg-yellow-500 text-slate-900 font-bold shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}" :class="!sidebarOpen ? 'justify-center' : ''">
-                    <span class="text-xl">🏆</span>
-                    <span x-show="sidebarOpen" class="ml-3 font-semibold text-sm whitespace-nowrap">LEADERBOARD</span>
-                </a>
-
+                {{-- <div x-show="sidebarOpen" class="mt-4 px-6 text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">Hasil Lomba</div>
+                <div x-show="!sidebarOpen" class="mt-4 text-center text-slate-600 text-xs">•••</div> --}}
             </nav>
         </aside>
 

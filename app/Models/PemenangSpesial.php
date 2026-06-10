@@ -4,6 +4,15 @@ use Illuminate\Database\Eloquent\Model;
 
 class PemenangSpesial extends Model
 {
+    protected $fillable = [
+        'lomba_id',
+        'tingkat',
+        'kategori_penilaian_id',
+        'rank',
+        'peserta_id',
+        'keterangan',
+    ];
+
     protected $guarded = [];
 
     public function peserta() {

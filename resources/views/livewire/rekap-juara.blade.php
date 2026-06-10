@@ -55,6 +55,7 @@
                         <th class="p-4 text-center w-16">Rank</th>
                         <th class="p-4 w-16 text-center">No</th>
                         <th class="p-4">Nama Sekolah / Tim</th>
+                        <th class="p-4 text-center">WAKTU</th>
                         
                         @foreach($kolom_kategori_tampil as $kat)
                             <th class="p-4 text-center border-l border-slate-700 bg-slate-800">
@@ -89,6 +90,22 @@
                                 <div class="font-bold text-slate-800 uppercase text-sm">{{ $p->nama_sekolah }}</div>
                                 @if($p->status_tampil == 'selesai')
                                     <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-700">SELESAI</span>
+                                @endif
+                            </td>
+
+                            <td class="p-4 text-center">
+                                @php
+                                    $durasi = $p->durasi_tampil_detik ?? 0;
+                                    $menit = floor($durasi / 60);
+                                    $detik = $durasi % 60;
+                                @endphp
+                                
+                                @if($durasi > 0)
+                                    <div class="font-black text-slate-700 bg-slate-100 rounded-md px-2 py-1 inline-block border border-slate-200 shadow-sm text-sm" title="{{ $durasi }} Detik">
+                                        ⏱️ {{ sprintf('%02d:%02d', $menit, $detik) }}
+                                    </div>
+                                @else
+                                    <span class="text-slate-300 font-bold">-</span>
                                 @endif
                             </td>
 

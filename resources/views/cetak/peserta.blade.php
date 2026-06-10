@@ -47,24 +47,18 @@
         $totalUmumKotor = 0; 
     @endphp
 
-    <!-- ==================== HEADER INFO PESERTA (KOP RETRO PANDARA) ==================== -->
     <div class="kop-container" style="border: none; padding-bottom: 5px; margin-bottom: 25px;">
         <table style="width: 100%; border: none;">
             <tr>
-                <!-- BAGIAN LOGO KIRI -->
                 <td style="width: 35%; text-align: center; vertical-align: middle;">
-                    <!-- Pastikan antum sudah punya file logo ini di folder public/img -->
                     <img src="{{ asset('img/logo-pandara.png') }}" alt="Logo PUCKS Pandara" style="max-width: 220px; display: inline-block;">
                 </td>
-                
-                <!-- BAGIAN IDENTITAS KANAN (KOTAK 3D RETRO) -->
                 <td style="width: 65%; vertical-align: middle; padding-left: 15px;">
                     <table style="width: 100%; border: none; font-family: 'Times New Roman', Times, serif; font-size: 16px; font-weight: bold;">
                         <tr>
                             <td style="width: 20%; padding: 6px 0; border: none; text-align: left;">NO. URUT</td>
                             <td style="width: 5%; border: none; text-align: center;">:</td>
                             <td style="width: 75%; border: none;">
-                                <!-- Efek border inset memberi kesan kotak teks 3D klasik -->
                                 <div style="border: 3px inset #888; padding: 6px 12px; background-color: #fff; width: 100%; box-sizing: border-box;">
                                     {{ $peserta->no_urut }}
                                 </div>
@@ -103,63 +97,78 @@
         </table>
     </div>
 
-    <!-- ==================== BAGIAN I: DAFTAR PENILAIAN UTAMA ==================== -->
     @if($kategoriUtama->count() > 0)
         <div style="font-weight: bold; font-size: 14px; margin-bottom: 5px;">I. DAFTAR PENILAIAN UTAMA</div>
 
         @foreach($kategoriUtama as $kat)
-            <div class="section-title">{{ strtoupper($kat->nama_kategori) }}</div>
-            <table class="table-nilai">
-                <thead>
-                    <tr>
-                        <th class="text-left" style="width: 45%">NAMA GERAKAN</th>
-                        @foreach($juris as $index => $juri)
-                            <th>JURI {{ $index + 1 }}</th>
-                        @endforeach
-                        <th style="width: 15%">NILAI</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @php $grandTotalKategori = 0; @endphp
-                    @foreach($kat->items as $item)
-                        <tr>
-                            <td class="text-left">{{ $item->nama_gerakan }}</td>
-                            @php $totalItem = 0; @endphp
-                            @foreach($juris as $juri)
-                                @php
-                                    $nilai = $peserta->nilai->where('item_penilaian_id', $item->id)->where('juri_id', $juri->id)->first();
-                                    $skor = $nilai ? $nilai->nilai : 0;
-                                    $totalItem += $skor;
-                                @endphp
-                                <td>{{ $skor > 0 ? $skor : '0' }}</td>
-                            @endforeach
-                            <td class="bold">{{ $totalItem }}</td>
-                            @php $grandTotalKategori += $totalItem; @endphp
-                        </tr>
-                    @endforeach
-                    
-                    <tr style="background: #fff;">
-                        <td colspan="{{ count($juris) + 1 }}" class="text-left bold">PENAMBAHAN POINT</td>
-                        <td class="bold">0</td>
-                    </tr>
-                    <tr style="background: #fff;">
-                        <td colspan="{{ count($juris) + 1 }}" class="text-left bold">PENGURANGAN POINT</td>
-                        <td class="bold">(0)</td>
-                    </tr>
-                    <tr style="background: #f8fafc;">
-                        <td colspan="{{ count($juris) + 1 }}" class="text-left bold">TOTAL POINT</td>
-                        <td class="bold">{{ $grandTotalKategori }}</td>
-                    </tr>
-                </tbody>
-            </table>
-            
-            @php 
-                $totalUtamaKotor += $grandTotalKategori; 
-                if($kat->is_umum) { $totalUmumKotor += $grandTotalKategori; }
+            @php
+                $itemIds = $kat->items->pluck('id');
+                $cekNilaiKategori = $peserta->nilai->whereIn('item_penilaian_id', $itemIds)->sum('nilai');
+
+                // FILTER SAKTI: Hanya ambil Juri yang punya kontribusi nilai > 0 di kategori ini
+                $juriKategoriIni = $juris->filter(function($j) use ($peserta, $itemIds) {
+                    return $peserta->nilai->where('juri_id', $j->id)
+                                          ->whereIn('item_penilaian_id', $itemIds)
+                                          ->sum('nilai') > 0;
+                });
             @endphp
+
+            @if($cekNilaiKategori > 0)
+                <div class="section-title">{{ strtoupper($kat->nama_kategori) }}</div>
+                <table class="table-nilai">
+                    <thead>
+                        <tr>
+                            <th class="text-left" style="width: 45%">NAMA GERAKAN</th>
+                            @foreach($juriKategoriIni as $juri)
+                                @php $nomorAsliJuri = $juris->search($juri) + 1; @endphp
+                                <th>JURI {{ $nomorAsliJuri }}</th>
+                            @endforeach
+                            <th style="width: 15%">NILAI</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @php $grandTotalKategori = 0; @endphp
+                        @foreach($kat->items as $item)
+                            <tr>
+                                <td class="text-left">{{ $item->nama_gerakan }}</td>
+                                @php $totalItem = 0; @endphp
+                                
+                                @foreach($juriKategoriIni as $juri)
+                                    @php
+                                        $nilai = $peserta->nilai->where('item_penilaian_id', $item->id)->where('juri_id', $juri->id)->first();
+                                        $skor = $nilai ? $nilai->nilai : 0;
+                                        $totalItem += $skor;
+                                    @endphp
+                                    <td>{{ $skor > 0 ? $skor : '0' }}</td>
+                                @endforeach
+                                
+                                <td class="bold">{{ $totalItem }}</td>
+                                @php $grandTotalKategori += $totalItem; @endphp
+                            </tr>
+                        @endforeach
+                        
+                        <tr style="background: #fff;">
+                            <td colspan="{{ $juriKategoriIni->count() + 1 }}" class="text-left bold">PENAMBAHAN POINT</td>
+                            <td class="bold">0</td>
+                        </tr>
+                        <tr style="background: #fff;">
+                            <td colspan="{{ $juriKategoriIni->count() + 1 }}" class="text-left bold">PENGURANGAN POINT</td>
+                            <td class="bold">(0)</td>
+                        </tr>
+                        <tr style="background: #f8fafc;">
+                            <td colspan="{{ $juriKategoriIni->count() + 1 }}" class="text-left bold">TOTAL POINT</td>
+                            <td class="bold">{{ $grandTotalKategori }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                @php 
+                    $totalUtamaKotor += $grandTotalKategori; 
+                    if($kat->is_umum) { $totalUmumKotor += $grandTotalKategori; }
+                @endphp
+            @endif
         @endforeach
 
-        <!-- TABEL RAKSASA GRAND TOTAL UTAMA -->
         <table class="table-grand-total">
             <tr>
                 <td style="text-align: left; font-size: 14px; width: 25%;">TOTAL POIN (UTAMA)</td>
@@ -182,63 +191,88 @@
         </table>
     @endif
 
-    <!-- ==================== BAGIAN II: DAFTAR PENILAIAN KHUSUS ==================== -->
     @if($kategoriKhusus->count() > 0)
-        <div style="font-weight: bold; font-size: 14px; margin-top: 20px; margin-bottom: 5px;">II. DAFTAR PENILAIAN KHUSUS / TAMBAHAN</div>
+        @php
+            $totalSemuaKategoriKhusus = 0;
+            foreach($kategoriKhusus as $katKhusus) {
+                $itemIdsKhusus = $katKhusus->items->pluck('id');
+                $totalSemuaKategoriKhusus += $peserta->nilai->whereIn('item_penilaian_id', $itemIdsKhusus)->sum('nilai');
+            }
+        @endphp
 
-        @foreach($kategoriKhusus as $kat)
-            <div class="section-title">{{ strtoupper($kat->nama_kategori) }}</div>
-            <table class="table-nilai">
-                <thead>
-                    <tr>
-                        <th class="text-left" style="width: 45%">NAMA GERAKAN</th>
-                        @foreach($juris as $index => $juri)
-                            <th>JURI {{ $index + 1 }}</th>
-                        @endforeach
-                        <th style="width: 15%">NILAI</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @php $grandTotalKategori = 0; @endphp
-                    @foreach($kat->items as $item)
-                        <tr>
-                            <td class="text-left">{{ $item->nama_gerakan }}</td>
-                            @php $totalItem = 0; @endphp
-                            @foreach($juris as $juri)
-                                @php
-                                    $nilai = $peserta->nilai->where('item_penilaian_id', $item->id)->where('juri_id', $juri->id)->first();
-                                    $skor = $nilai ? $nilai->nilai : 0;
-                                    $totalItem += $skor;
-                                @endphp
-                                <td>{{ $skor > 0 ? $skor : '0' }}</td>
+        @if($totalSemuaKategoriKhusus > 0)
+            <div style="font-weight: bold; font-size: 14px; margin-top: 20px; margin-bottom: 5px;">II. DAFTAR PENILAIAN KHUSUS / TAMBAHAN</div>
+
+            @foreach($kategoriKhusus as $kat)
+                @php
+                    $itemIds = $kat->items->pluck('id');
+                    $cekNilaiKategori = $peserta->nilai->whereIn('item_penilaian_id', $itemIds)->sum('nilai');
+
+                    // FILTER SAKTI JURI KHUSUS
+                    $juriKategoriIni = $juris->filter(function($j) use ($peserta, $itemIds) {
+                        return $peserta->nilai->where('juri_id', $j->id)
+                                              ->whereIn('item_penilaian_id', $itemIds)
+                                              ->sum('nilai') > 0;
+                    });
+                @endphp
+
+                @if($cekNilaiKategori > 0)
+                    <div class="section-title">{{ strtoupper($kat->nama_kategori) }}</div>
+                    <table class="table-nilai">
+                        <thead>
+                            <tr>
+                                <th class="text-left" style="width: 45%">NAMA GERAKAN</th>
+                                @foreach($juriKategoriIni as $juri)
+                                    @php $nomorAsliJuri = $juris->search($juri) + 1; @endphp
+                                    <th>JURI {{ $nomorAsliJuri }}</th>
+                                @endforeach
+                                <th style="width: 15%">NILAI</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @php $grandTotalKategori = 0; @endphp
+                            @foreach($kat->items as $item)
+                                <tr>
+                                    <td class="text-left">{{ $item->nama_gerakan }}</td>
+                                    @php $totalItem = 0; @endphp
+                                    
+                                    @foreach($juriKategoriIni as $juri)
+                                        @php
+                                            $nilai = $peserta->nilai->where('item_penilaian_id', $item->id)->where('juri_id', $juri->id)->first();
+                                            $skor = $nilai ? $nilai->nilai : 0;
+                                            $totalItem += $skor;
+                                        @endphp
+                                        <td>{{ $skor > 0 ? $skor : '0' }}</td>
+                                    @endforeach
+                                    
+                                    <td class="bold">{{ $totalItem }}</td>
+                                    @php $grandTotalKategori += $totalItem; @endphp
+                                </tr>
                             @endforeach
-                            <td class="bold">{{ $totalItem }}</td>
-                            @php $grandTotalKategori += $totalItem; @endphp
-                        </tr>
-                    @endforeach
+                            
+                            <tr style="background: #fff;">
+                                <td colspan="{{ $juriKategoriIni->count() + 1 }}" class="text-left bold">PENAMBAHAN POINT</td>
+                                <td class="bold">0</td>
+                            </tr>
+                            <tr style="background: #fff;">
+                                <td colspan="{{ $juriKategoriIni->count() + 1 }}" class="text-left bold">PENGURANGAN POINT</td>
+                                <td class="bold">(0)</td>
+                            </tr>
+                            <tr style="background: #f8fafc;">
+                                <td colspan="{{ $juriKategoriIni->count() + 1 }}" class="text-left bold">TOTAL POINT</td>
+                                <td class="bold">{{ $grandTotalKategori }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
                     
-                    <tr style="background: #fff;">
-                        <td colspan="{{ count($juris) + 1 }}" class="text-left bold">PENAMBAHAN POINT</td>
-                        <td class="bold">0</td>
-                    </tr>
-                    <tr style="background: #fff;">
-                        <td colspan="{{ count($juris) + 1 }}" class="text-left bold">PENGURANGAN POINT</td>
-                        <td class="bold">(0)</td>
-                    </tr>
-                    <tr style="background: #f8fafc;">
-                        <td colspan="{{ count($juris) + 1 }}" class="text-left bold">TOTAL POINT</td>
-                        <td class="bold">{{ $grandTotalKategori }}</td>
-                    </tr>
-                </tbody>
-            </table>
-            
-            @php 
-                if($kat->is_umum) { $totalUmumKotor += $grandTotalKategori; }
-            @endphp
-        @endforeach
+                    @php 
+                        if($kat->is_umum) { $totalUmumKotor += $grandTotalKategori; }
+                    @endphp
+                @endif
+            @endforeach
+        @endif
     @endif
 
-    <!-- ==================== TANDA TANGAN ==================== -->
     <table style="border: none; width: 100%; text-align: center; margin-top: 40px; font-weight: bold; page-break-inside: avoid;">
         <tr style="border: none;">
             <td style="border: none; width: 50%;">TIM REKAP<br><br><br><br><br><b>( ............................... )</b></td>

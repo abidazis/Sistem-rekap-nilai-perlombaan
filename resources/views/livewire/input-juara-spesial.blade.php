@@ -40,47 +40,59 @@
 
     @if($selected_kategori_id)
         <div class="bg-white p-6 rounded-lg shadow-lg border border-slate-200 animate-fade-in-down">
-            <h3 class="text-lg font-black text-slate-700 mb-4 border-b pb-2">Tentukan Pemenang</h3>
+            <h3 class="text-lg font-black text-slate-700 mb-4 border-b pb-2">Tentukan Pemenang & Total Poin</h3>
             <form wire:submit.prevent="simpanJuara">
                 
                 <div class="space-y-4 mb-6">
-                    <div class="flex items-center gap-4 bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                        <div class="w-12 h-12 bg-yellow-400 rounded-full flex items-center justify-center text-white font-black text-xl shadow">1</div>
-                        <div class="flex-1">
-                            <label class="block text-xs font-bold text-yellow-800 mb-1">JUARA 1</label>
+                    <div class="flex flex-col sm:flex-row items-center gap-4 bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                        <div class="w-12 h-12 bg-yellow-400 rounded-full flex items-center justify-center text-white font-black text-xl shadow shrink-0">1</div>
+                        <div class="flex-1 w-full">
+                            <label class="block text-xs font-bold text-yellow-800 mb-1">Pilih Sekolah</label>
                             <select wire:model="juara_1" class="w-full border border-yellow-300 rounded p-2 font-bold text-slate-700">
                                 <option value="">-- Pilih Sekolah --</option>
                                 @foreach($pesertas as $p) <option value="{{ $p->id }}">#{{ $p->no_urut }} - {{ $p->nama_sekolah }}</option> @endforeach
                             </select>
                         </div>
+                        <div class="w-full sm:w-32">
+                            <label class="block text-xs font-bold text-yellow-800 mb-1">Total Nilai</label>
+                            <input type="number" wire:model="nilai_1" class="w-full border border-yellow-300 rounded p-2 font-bold text-slate-700 text-center" placeholder="Poin">
+                        </div>
                     </div>
 
-                    <div class="flex items-center gap-4 bg-slate-50 p-4 rounded-lg border border-slate-200">
-                        <div class="w-12 h-12 bg-slate-300 rounded-full flex items-center justify-center text-slate-600 font-black text-xl shadow">2</div>
-                        <div class="flex-1">
-                            <label class="block text-xs font-bold text-slate-600 mb-1">JUARA 2</label>
+                    <div class="flex flex-col sm:flex-row items-center gap-4 bg-slate-50 p-4 rounded-lg border border-slate-200">
+                        <div class="w-12 h-12 bg-slate-300 rounded-full flex items-center justify-center text-slate-600 font-black text-xl shadow shrink-0">2</div>
+                        <div class="flex-1 w-full">
+                            <label class="block text-xs font-bold text-slate-600 mb-1">Pilih Sekolah</label>
                             <select wire:model="juara_2" class="w-full border border-slate-300 rounded p-2 font-bold text-slate-700">
                                 <option value="">-- Pilih Sekolah --</option>
                                 @foreach($pesertas as $p) <option value="{{ $p->id }}">#{{ $p->no_urut }} - {{ $p->nama_sekolah }}</option> @endforeach
                             </select>
                         </div>
+                        <div class="w-full sm:w-32">
+                            <label class="block text-xs font-bold text-slate-600 mb-1">Total Nilai</label>
+                            <input type="number" wire:model="nilai_2" class="w-full border border-slate-300 rounded p-2 font-bold text-slate-700 text-center" placeholder="Poin">
+                        </div>
                     </div>
 
-                    <div class="flex items-center gap-4 bg-orange-50 p-4 rounded-lg border border-orange-200">
-                        <div class="w-12 h-12 bg-orange-400 rounded-full flex items-center justify-center text-white font-black text-xl shadow">3</div>
-                        <div class="flex-1">
-                            <label class="block text-xs font-bold text-orange-800 mb-1">JUARA 3</label>
+                    <div class="flex flex-col sm:flex-row items-center gap-4 bg-orange-50 p-4 rounded-lg border border-orange-200">
+                        <div class="w-12 h-12 bg-orange-400 rounded-full flex items-center justify-center text-white font-black text-xl shadow shrink-0">3</div>
+                        <div class="flex-1 w-full">
+                            <label class="block text-xs font-bold text-orange-800 mb-1">Pilih Sekolah</label>
                             <select wire:model="juara_3" class="w-full border border-orange-300 rounded p-2 font-bold text-slate-700">
                                 <option value="">-- Pilih Sekolah --</option>
                                 @foreach($pesertas as $p) <option value="{{ $p->id }}">#{{ $p->no_urut }} - {{ $p->nama_sekolah }}</option> @endforeach
                             </select>
+                        </div>
+                        <div class="w-full sm:w-32">
+                            <label class="block text-xs font-bold text-orange-800 mb-1">Total Nilai</label>
+                            <input type="number" wire:model="nilai_3" class="w-full border border-orange-300 rounded p-2 font-bold text-slate-700 text-center" placeholder="Poin">
                         </div>
                     </div>
                 </div>
 
                 <div class="flex justify-end">
                     <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg transition">
-                        💾 Simpan Pemenang
+                        💾 Simpan Pemenang & Nilai
                     </button>
                 </div>
             </form>
