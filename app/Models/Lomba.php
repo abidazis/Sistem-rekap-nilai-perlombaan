@@ -13,6 +13,7 @@ class Lomba extends Model
     // Casts untuk memastikan array tie-breaker terbaca benar
     protected $casts = [
         'tie_breakers' => 'array',
+        'urutan_juara' => 'array',
     ];
     
     // Paksa Laravel baca tabel 'lomba', bukan 'lombas'

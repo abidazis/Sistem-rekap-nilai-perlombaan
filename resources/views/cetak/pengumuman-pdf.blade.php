@@ -119,19 +119,49 @@
 </head>
 <body>
 
-    <table class="header-table">
+    @php
+        // 1. PROSES LOGO KIRI (LOGO SISTEM/PANDARA) DENGAN INLINE BASE64
+        $logoKiriPath = public_path('img/logo-pandara.png');
+        $logoKiriB64 = null;
+        
+        if (file_exists($logoKiriPath)) {
+            $type = pathinfo($logoKiriPath, PATHINFO_EXTENSION);
+            $data = file_get_contents($logoKiriPath);
+            $logoKiriB64 = 'data:image/' . $type . ';base64,' . base64_encode($data);
+        }
+
+        // 2. PROSES LOGO KANAN (LOGO EVENT DARI DATABASE)
+        $logoKananB64 = $logoKiriB64; // Fallback ke logo sistem jika panitia tidak upload logo event
+        
+        if (!empty($lomba->logo)) {
+            $eventLogoPath = storage_path('app/public/' . $lomba->logo);
+            if (file_exists($eventLogoPath)) {
+                $type = pathinfo($eventLogoPath, PATHINFO_EXTENSION);
+                $data = file_get_contents($eventLogoPath);
+                $logoKananB64 = 'data:image/' . $type . ';base64,' . base64_encode($data);
+            }
+        }
+    @endphp
+
+    <table class="header-table" style="width: 100%; text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px;">
         <tr>
-            <td class="logo-box">
-                <img src="{{ public_path('img/logo-pandara.png') }}" alt="Logo" style="width: 65px;">
+            <td class="logo-box" style="width: 15%;">
+                @if($logoKiriB64)
+                    <img src="{{ $logoKiriB64 }}" alt="Logo Kiri" style="width: 65px;">
+                @endif
             </td>
-            <td class="header-text">
-                <h1>BERITA ACARA HASIL KEJUARAAN</h1>
-                <h1>{{ strtoupper($lomba->nama_lomba) }}</h1>
-                <h2>TINGKAT {{ strtoupper($tingkat) }} SEDERAJAT</h2>
-                <p>Gedung Serbaguna SMA SUMPAH PEMUDA | Tanggal: {{ \Carbon\Carbon::parse($lomba->tanggal_pelaksanaan)->format('d F Y') }}</p>
+            
+            <td class="header-text" style="width: 70%;">
+                <h1 style="margin: 0; font-size: 16px;">BERITA ACARA HASIL KEJUARAAN</h1>
+                <h1 style="margin: 5px 0; font-size: 18px;">{{ strtoupper($lomba->nama_lomba) }}</h1>
+                <h2 style="margin: 0; font-size: 14px;">TINGKAT {{ strtoupper($tingkat) }} SEDERAJAT</h2>
+                <p style="margin: 5px 0 0 0; font-size: 11px;">Lokasi: {{ strtoupper($lomba->lokasi) }} | Tanggal: {{ \Carbon\Carbon::parse($lomba->tanggal_pelaksanaan)->format('d F Y') }}</p>
             </td>
-            <td class="logo-box">
-                <img src="{{ public_path('img/logo-pandara.png') }}" alt="Logo" style="width: 65px;">
+            
+            <td class="logo-box" style="width: 15%;">
+                @if($logoKananB64)
+                    <img src="{{ $logoKananB64 }}" alt="Logo Kanan" style="width: 65px; max-height: 65px; object-fit: contain;">
+                @endif
             </td>
         </tr>
     </table>
@@ -153,27 +183,25 @@
                         </tr>
                     </thead>
                     <tbody>
+                        @php
+                            // Siapkan format urutan juara dari database
+                            $urutanFormat = is_array($lomba->urutan_juara) && count($lomba->urutan_juara) > 0 
+                                            ? $lomba->urutan_juara 
+                                            : []; 
+                        @endphp
+
                         @foreach($ranked as $idx => $p)
                             @php
-                                // Labeling
-                                $urutan = $idx + 1;
-                                if($urutan <= 3) $label = "UTAMA $urutan";
-                                elseif($urutan <= 6) $label = "HARAPAN " . ($urutan-3);
-                                elseif($urutan <= 9) $label = "MADYA " . ($urutan-6);
-                                elseif($urutan <= 12) $label = "BINA " . ($urutan-9);
-                                elseif($urutan <= 15) $label = "MULA " . ($urutan-12);
-                                elseif($urutan <= 18) $label = "PURWA " . ($urutan-15);
-                                elseif($urutan <= 21) $label = "CARAKA " . ($urutan-18);
-                                elseif($urutan <= 24) $label = "PERINTIS " . ($urutan-21);
-                                elseif($urutan <= 27) $label = "POTENSIAL " . ($urutan-24);
-                                elseif($urutan <= 30) $label = "WIRA " . ($urutan-27);
-                                else $label = "-" . ($urutan-30);
+                                // Labeling Dinamis: Ambil dari urutanFormat sesuai index.
+                                // Jika jumlah peserta lebih banyak dari urutan juara yang disiapkan, beri default "PERINGKAT X"
+                                $label = isset($urutanFormat[$idx]) ? strtoupper($urutanFormat[$idx]) : "PERINGKAT " . ($idx + 1);
 
-                                // Deteksi Seri
+                                // Deteksi Seri (Tie)
                                 $is_tied = false;
                                 if ($idx > 0 && $p->grand_total == $ranked[$idx-1]->grand_total) $is_tied = true;
                                 if ($idx < count($ranked) - 1 && $p->grand_total == $ranked[$idx+1]->grand_total) $is_tied = true;
                             @endphp
+                            
                             <tr>
                                 <td class="font-bold">{{ $label }}</td>
                                 <td class="font-bold">{{ $p->no_urut }}</td>
@@ -181,12 +209,14 @@
                                 <td class="font-bold text-blue-800" style="background-color: #f8fafc;">
                                     {{ number_format($p->grand_total, 0, ',', '.') }}
                                 </td>
+                                
                                 @if(count($tb_kategoris) > 0)
                                     @php $nilai_tb = number_format($p->skor_kategori[$tb_kategoris->first()->id] ?? 0, 0, ',', '.'); @endphp
                                     @if($is_tied)
                                         <td class="font-bold" style="background-color: #ffff00; color: #000;">{{ $nilai_tb }}</td>
                                     @else
-                                        <td>{{ $nilai_tb }}</td> @endif
+                                        <td>{{ $nilai_tb }}</td> 
+                                    @endif
                                 @endif
                             </tr>
                         @endforeach
@@ -318,7 +348,7 @@
     </table>
 
     <div class="system-footer">
-        Dicetak otomatis oleh PANDARA System pada {{ date('d/m/Y H:i') }} - Bekasi, Jawa Barat
+        Dicetak otomatis oleh PANDARA System pada {{ date('d/m/Y') }} - Bekasi, Jawa Barat
     </div>
 
 </body>

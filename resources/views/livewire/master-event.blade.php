@@ -55,13 +55,6 @@
                         <div class="bg-indigo-50 p-3 rounded-t-lg border-b-2 border-indigo-200 font-bold text-indigo-800 uppercase text-sm">Aturan Klasemen & Seri</div>
                         
                         @if($is_edit)
-                            <div>
-                                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Format Predikat Juara (Sertifikat)</label>
-                                <select wire:model="format_juara" class="w-full border border-slate-300 rounded p-2 font-bold text-slate-700">
-                                    <option value="all_harapan">Format All Trophy (Utama 1,2,3 - Harapan 1,2,3 - dst)</option>
-                                    <option value="standard">Format Standar Nasional</option>
-                                </select>
-                            </div>
 
                             <div class="mt-4">
                                 <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Penentuan Jika Nilai Seri (Tie-Breaker)</label>
@@ -93,6 +86,33 @@
                                                     <option value="{{ $k->id }}">{{ $k->nama_kategori }}</option>
                                                 @endforeach
                                             </select>
+                                        </div>
+                                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-6">
+                                            <div class="space-y-4">
+                                                <div class="bg-blue-50 p-3 rounded-t-lg border-b-2 border-blue-200 font-bold text-blue-800 uppercase text-sm">Info Dasar Lomba</div>
+                                                
+                                                <div>
+                                                    <label class="block text-sm font-bold mb-1 text-gray-600">Logo Event (Kanan Kop Surat)</label>
+                                                    <input type="file" wire:model="logo" accept="image/*" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500">
+                                                    <div wire:loading wire:target="logo" class="text-xs text-blue-500 mt-1">⏳ Mengunggah gambar...</div>
+                                                    @if ($logo)
+                                                        <img src="{{ $logo->temporaryUrl() }}" class="mt-2 h-16 rounded object-cover">
+                                                    @elseif ($logo_lama)
+                                                        <img src="{{ asset('storage/'.$logo_lama) }}" class="mt-2 h-16 rounded object-cover">
+                                                    @endif
+                                                </div>
+                                            </div>
+
+                                            <div class="space-y-4">
+                                                <div class="bg-indigo-50 p-3 rounded-t-lg border-b-2 border-indigo-200 font-bold text-indigo-800 uppercase text-sm">Aturan Klasemen & Seri</div>
+                                                
+                                                <div>
+                                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Setting Predikat/Urutan Juara</label>
+                                                    <textarea wire:model="urutan_juara_teks" rows="6" class="w-full border border-slate-300 rounded p-2 text-sm font-bold text-slate-700 bg-yellow-50 focus:ring-2 focus:ring-indigo-500" placeholder="Juara Utama 1&#10;Juara Utama 2&#10;..."></textarea>
+                                                    <span class="text-xs text-gray-400 italic">*Pisahkan setiap urutan juara dengan tombol Enter (Garis Baru). Urutan ini akan langsung tercetak di Berita Acara PDF.</span>
+                                                </div>
+
+                                                </div>
                                         </div>
                                     @else
                                         <span class="text-xs text-red-500 italic">Isi data Master Kategori dulu agar bisa memilih.</span>

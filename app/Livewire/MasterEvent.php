@@ -3,28 +3,36 @@
 namespace App\Livewire;
 
 use Livewire\Component;
+use Livewire\WithFileUploads; // Wajib untuk upload file
 use App\Models\Lomba;
 use App\Models\KategoriPenilaian;
 use Livewire\Attributes\Layout;
+use Illuminate\Support\Facades\Storage;
 
 class MasterEvent extends Component
 {
+    use WithFileUploads;
+
     // 1. Variabel Form Event
     public $nama_lomba, $tanggal_pelaksanaan, $lokasi, $durasi_maksimal_detik = 600;
     public $lomba_id;
     
+    // Variabel Logo
+    public $logo; 
+    public $logo_lama; // Untuk preview saat edit
+    
     // 2. Variabel Pengaturan Tambahan (Klasemen & Tie Breaker)
     public $format_juara = 'all_harapan';
-    public $tie_breakers = []; // Akan berisi array dari id kategori yang dipilih
+    public $urutan_juara_teks; // Input dari textarea (Pisahkan dengan Enter)
+    public $tie_breakers = [];
 
-    // 3. Mode (Apakah sedang nambah data atau tidak)
+    // 3. Mode
     public $is_create = false;
     public $is_edit = false;
 
     #[Layout('layouts.app')]
     public function render()
     {
-        // Ambil daftar kategori berdasarkan lomba yang sedang di-edit (jika ada)
         $kategoris = [];
         if ($this->lomba_id) {
             $kategoris = KategoriPenilaian::where('lomba_id', $this->lomba_id)->get();
@@ -32,34 +40,47 @@ class MasterEvent extends Component
 
         return view('livewire.master-event', [
             'events' => Lomba::latest()->get(),
-            'kategoris' => $kategoris // Lempar ke view
+            'kategoris' => $kategoris 
         ]);
     }
 
     public function create()
     {
         $this->resetFields();
+        // Default template urutan juara
+        $this->urutan_juara_teks = "Juara Utama 1\nJuara Utama 2\nJuara Utama 3\nJuara Harapan 1\nJuara Harapan 2\nJuara Harapan 3";
         $this->is_create = true;
         $this->is_edit = false;
     }
 
     public function store()
     {
-        // Validasi
         $this->validate([
             'nama_lomba' => 'required',
             'tanggal_pelaksanaan' => 'required|date',
             'lokasi' => 'required',
             'durasi_maksimal_detik' => 'required|numeric',
+            'logo' => 'nullable|image|max:2048', // Max 2MB
+            'urutan_juara_teks' => 'required'
         ]);
 
-        // Simpan ke Database
+        // Proses Upload Logo
+        $logoPath = null;
+        if ($this->logo) {
+            $logoPath = $this->logo->store('event-logos', 'public');
+        }
+
+        // Pecah teks (enter) jadi Array JSON
+        $urutanArray = array_values(array_filter(array_map('trim', explode("\n", $this->urutan_juara_teks))));
+
         Lomba::create([
             'nama_lomba' => $this->nama_lomba,
             'tanggal_pelaksanaan' => $this->tanggal_pelaksanaan,
             'lokasi' => $this->lokasi,
             'durasi_maksimal_detik' => $this->durasi_maksimal_detik,
-            'format_juara' => $this->format_juara, // Default masuk
+            'logo' => $logoPath,
+            'urutan_juara' => $urutanArray,
+            'format_juara' => $this->format_juara,
             'status_aktif' => true
         ]);
 
@@ -75,10 +96,13 @@ class MasterEvent extends Component
         $this->tanggal_pelaksanaan = $lomba->tanggal_pelaksanaan;
         $this->lokasi = $lomba->lokasi;
         $this->durasi_maksimal_detik = $lomba->durasi_maksimal_detik;
+        $this->logo_lama = $lomba->logo;
         
-        // Load data pengaturan tambahan
         $this->format_juara = $lomba->format_juara ?? 'all_harapan';
         $this->tie_breakers = is_array($lomba->tie_breakers) ? $lomba->tie_breakers : [];
+        
+        // Gabungkan array jadi string teks dengan enter
+        $this->urutan_juara_teks = is_array($lomba->urutan_juara) ? implode("\n", $lomba->urutan_juara) : "Juara Utama 1\nJuara Utama 2\nJuara Utama 3";
 
         $this->is_create = true; 
         $this->is_edit = true;
@@ -86,23 +110,37 @@ class MasterEvent extends Component
 
     public function update()
     {
-        // 🚨 PERBAIKAN: Masukkan variabel durasi_maksimal_detik ke validasi!
         $this->validate([
             'nama_lomba' => 'required',
             'tanggal_pelaksanaan' => 'required|date',
             'lokasi' => 'required',
             'durasi_maksimal_detik' => 'required|numeric',
+            'logo' => 'nullable|image|max:2048',
+            'urutan_juara_teks' => 'required'
         ]);
 
         $lomba = Lomba::find($this->lomba_id);
-        $lomba->update([
+        $urutanArray = array_values(array_filter(array_map('trim', explode("\n", $this->urutan_juara_teks))));
+
+        $dataUpdate = [
             'nama_lomba' => $this->nama_lomba,
             'tanggal_pelaksanaan' => $this->tanggal_pelaksanaan,
             'lokasi' => $this->lokasi,
             'durasi_maksimal_detik' => $this->durasi_maksimal_detik,
+            'urutan_juara' => $urutanArray,
             'format_juara' => $this->format_juara,
-            'tie_breakers' => $this->tie_breakers // Simpan array ke DB
-        ]);
+            'tie_breakers' => $this->tie_breakers
+        ];
+
+        // Replace logo lama jika ada upload baru
+        if ($this->logo) {
+            if ($lomba->logo) {
+                Storage::disk('public')->delete($lomba->logo);
+            }
+            $dataUpdate['logo'] = $this->logo->store('event-logos', 'public');
+        }
+
+        $lomba->update($dataUpdate);
 
         session()->flash('message', 'Event Berhasil Diupdate!');
         $this->cancel();
@@ -110,7 +148,11 @@ class MasterEvent extends Component
 
     public function delete($id)
     {
-        Lomba::find($id)->delete();
+        $lomba = Lomba::find($id);
+        if ($lomba->logo) {
+            Storage::disk('public')->delete($lomba->logo);
+        }
+        $lomba->delete();
         session()->flash('message', 'Event Berhasil Dihapus!');
     }
 
@@ -126,8 +168,11 @@ class MasterEvent extends Component
         $this->nama_lomba = '';
         $this->tanggal_pelaksanaan = '';
         $this->lokasi = '';
+        $this->logo = null;
+        $this->logo_lama = null;
         $this->durasi_maksimal_detik = 600;
         $this->format_juara = 'all_harapan';
         $this->tie_breakers = [];
+        $this->urutan_juara_teks = '';
     }
 }
