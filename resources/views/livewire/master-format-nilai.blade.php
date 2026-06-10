@@ -10,18 +10,11 @@
                         <option value="{{ $event->id }}">{{ $event->nama_lomba }}</option>
                     @endforeach
                 </select>
-                @if($selected_lomba_id)
-                    <div class="mt-4 flex justify-end">
-                        <button onclick="window.open('/cetak-ljk/{{ $selected_lomba_id }}', '_blank')" class="bg-slate-800 hover:bg-slate-700 text-white text-sm font-bold py-2 px-4 rounded shadow-md flex items-center gap-2">
-                            🖨️ Cetak Lembar Juri (PDF)
-                        </button>
-                    </div>
-                @endif
             </div>
 
             <div>
                 <label class="block text-slate-400 text-xs font-bold uppercase mb-2">Langkah 2: Pilih Kategori</label>
-                <select wire:model.live="selected_kategori_id" class="w-full bg-slate-700 border border-slate-600 rounded p-3 focus:ring-2 focus:ring-blue-500" {{ !$selected_lomba_id ? 'disabled' : '' }}>
+                <select wire:model.live="selected_kategori_id" class="w-full bg-slate-700 border border-slate-600 rounded p-3 focus:ring-2 focus:ring-blue-500 mb-4" {{ !$selected_lomba_id ? 'disabled' : '' }}>
                     <option value="">-- Pilih Kategori --</option>
                     @foreach($kategoris as $kat)
                         <option value="{{ $kat->id }}">{{ $kat->nama_kategori }}</option>
@@ -31,8 +24,11 @@
         </div>
 
         @if($selected_kategori_id && !$is_create)
+            <div class="text-xs text-slate-400 bg-slate-900/50 p-3 rounded-md border border-slate-700">
+                💡 <b>Format Dokumentasi Kolom CSV:</b> <span class="font-mono text-yellow-400 font-bold">KATEGORI; NO_URUT; NAMA_GERAKAN; OPSI_NILAI</span>
+                <br><span class="text-[11px] text-slate-400">*Sistem akan mencocokkan data otomatis tanpa mengubah setingan bobot / persentase penilaian yang sudah Anda buat.</span>
+            </div>
             <div class="mt-6 flex flex-col md:flex-row justify-between items-center border-t border-slate-700 pt-4 gap-4">
-                
                 <!-- FORM IMPORT CSV BARU -->
                 <form wire:submit.prevent="importData" class="flex flex-wrap items-center gap-2 bg-slate-700 p-2 rounded-lg w-full md:w-auto">
                     <input type="file" wire:model.live="file_import" accept=".csv" class="text-sm text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-bold file:bg-green-100 file:text-green-800 hover:file:bg-green-200 cursor-pointer">
@@ -49,10 +45,18 @@
                     @error('file_import') <span class="text-red-400 text-xs font-bold w-full">{{ $message }}</span> @enderror
                 </form>
 
+                @if($selected_lomba_id)
+                    <div class="mt-4 flex justify-end">
+                        <button onclick="window.open('/cetak-ljk/{{ $selected_lomba_id }}', '_blank')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold py-2 px-4 rounded shadow-md flex items-center gap-2 transition">
+                            📊 Unduh Lembar Juri (Excel)
+                        </button>
+                    </div>
+                @endif
                 <!-- TOMBOL TAMBAH MANUAL -->
                 <button wire:click="create" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-6 rounded shadow-lg flex items-center justify-center gap-2 w-full md:w-auto">
                     <span>+ Tambah Manual</span>
                 </button>
+
             </div>
         @endif
         

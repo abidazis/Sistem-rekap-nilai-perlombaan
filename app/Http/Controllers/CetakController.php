@@ -160,11 +160,17 @@ class CetakController extends Controller
         return view('cetak.kategori', compact('lomba', 'kategoris', 'ranking_per_kategori', 'tingkat'));
     }
 
-    // Fungsi 5: Cetak Lembar Penilaian Juri (LJK) Kosong
+    // Fungsi 5: Cetak Lembar Penilaian Juri (LJK) Kosong Format Excel
     public function cetakLJK($lomba_id)
     {
         $lomba = Lomba::findOrFail($lomba_id);
-        $kategoris = KategoriPenilaian::where('lomba_id', $lomba_id)->with('items')->get();
+        
+        // Improvisasi: Urutkan item gerakan berdasarkan kolom 'urutan' secara ascending (A-Z)
+        $kategoris = KategoriPenilaian::where('lomba_id', $lomba_id)
+            ->with(['items' => function($query) {
+                $query->orderBy('urutan', 'asc');
+            }])
+            ->get();
 
         return view('cetak.ljk', compact('lomba', 'kategoris'));
     }
@@ -452,8 +458,26 @@ class CetakController extends Controller
             if ($winners->count() > 0) $juaraSpesials[] = ['kategori' => $ks, 'pemenang' => $winners];
         }
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('cetak.pengumuman-pdf', compact('lomba', 'tingkat', 'ranked', 'juaraUmum', 'bestCategories', 'tb_kategoris', 'juaraSpesials'));
+        // =========================================================================
+        // ✅ PERBAIKAN: AMBIL DATA JURI DI SINI (SEBELUM RETURN PDF)
+        // =========================================================================
+        $juris = \App\Models\Juri::where('lomba_id', $lomba_id)->get();
+
+        // Tambahkan 'juris' ke dalam susunan compact() di bawah ini
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('cetak.pengumuman-pdf', compact(
+            'lomba', 
+            'tingkat', 
+            'ranked', 
+            'juaraUmum', 
+            'bestCategories', 
+            'tb_kategoris', 
+            'juaraSpesials',
+            'juris' // <--- Pastikan ini ikut dikirim ke PDF bro!
+        ));
+
         $pdf->setPaper('A4', 'portrait'); 
+        
+        // Fungsi akan berhenti di sini dan mengirimkan file stream PDF dengan data juri lengkap
         return $pdf->stream("PENGUMUMAN_JUARA_".strtoupper($tingkat).".pdf");
     }
 }

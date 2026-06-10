@@ -288,37 +288,32 @@
         </tr>
     </table>
 
-    <p style="text-align: center; margin-top: 10px; font-weight: bold; text-decoration: underline;">PENGESAHAN DEWAN JURI</p>
-    <table class="footer-ttd">
+    <p style="text-align: center; margin-top: 25px; font-weight: bold; text-decoration: underline; font-family: Arial, sans-serif;">
+        PENGESAHAN DEWAN JURI
+    </p>
+    
+    <table class="footer-ttd" style="width: 100%; border-collapse: collapse; margin-top: 15px; font-family: Arial, sans-serif; font-size: 11px;">
         <tr>
-            <td class="ttd-cell">
-                <p>Juri I<br>(PBB & Komandan)</p>
-                <p class="signature-line">( ______________ )</p>
-            </td>
-            <td class="ttd-cell">
-                <p>Juri II<br>(PBB & Komandan)</p>
-                <p class="signature-line">( ______________ )</p>
-            </td>
-            <td class="ttd-cell">
-                <p>Juri III<br>(PBB & Komandan)</p>
-                <p class="signature-line">( ______________ )</p>
-            </td>
-            <td class="ttd-cell">
-                <p>Juri<br>(Variasi Formasi)</p>
-                <p class="signature-line">( ______________ )</p>
-            </td>
-            <td class="ttd-cell">
-                <p>Juri<br>(Variasi Formasi)</p>
-                <p class="signature-line">( ______________ )</p>
-            </td>
-            <td class="ttd-cell">
-                <p>Juri<br>(Kostum)</p>
-                <p class="signature-line">( ______________ )</p>
-            </td>
-            <td class="ttd-cell">
-                <p>Juri<br>(Make-up)</p>
-                <p class="signature-line">( ______________ )</p>
-            </td>
+            @forelse($juris as $juri)
+                <td class="ttd-cell" style="text-align: center; vertical-align: top; padding: 10px;">
+                    <p style="margin: 0; font-weight: bold; color: #1e293b;">
+                        {{ $juri->posisi }}
+                    </p>
+                    <p style="margin: 2px 0 0 0; font-size: 10px; color: #64748b; italic">
+                        {{ $lomba->nama_lomba }}
+                    </p>
+                    
+                    <br><br><br><br>
+                    
+                    <p class="signature-line" style="margin: 0; font-weight: bold; color: #0f172a;">
+                        ( {{ strtoupper($juri->nama) }} )
+                    </p>
+                </td>
+            @empty
+                <td style="text-align: center; color: #94a3b8; font-style: italic; padding: 20px;">
+                    Belum ada data juri terregistrasi pada event ini.
+                </td>
+            @endforelse
         </tr>
     </table>
 

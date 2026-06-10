@@ -1,9 +1,10 @@
 <div>
-    <div class="bg-slate-900 p-6 rounded-lg shadow-lg mb-6 border-b-4 border-yellow-500">
-        <div class="flex flex-col md:flex-row justify-between items-end gap-4">
-            <div class="w-full md:w-1/2">
+    <div class="bg-slate-900 p-6 rounded-lg shadow-lg mb-6 border-b-4 border-yellow-500 text-white">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+            
+            <div class="lg:col-span-4">
                 <label class="block text-yellow-400 text-xs font-bold uppercase mb-2">Pilih Event LKBB:</label>
-                <select wire:model.live="selected_lomba_id" class="w-full bg-slate-800 text-white border border-slate-700 rounded p-3 focus:ring-2 focus:ring-yellow-500 font-bold">
+                <select wire:model.live="selected_lomba_id" class="w-full bg-slate-800 text-white border border-slate-700 rounded-lg p-3 focus:ring-2 focus:ring-yellow-500 font-bold text-sm">
                     <option value="">-- Pilih Event --</option>
                     @foreach($events as $event)
                         <option value="{{ $event->id }}">{{ $event->nama_lomba }}</option>
@@ -11,36 +12,46 @@
                 </select>
             </div>
             
-            <div class="mt-6 flex flex-col md:flex-row justify-between items-center border-t border-slate-700 pt-4 gap-4">
+            <div class="lg:col-span-6 bg-slate-800 p-4 rounded-xl border border-slate-700">
+                <label class="block text-slate-400 text-xs font-bold uppercase mb-2 tracking-wider">📥 Fitur Import Pasukan via CSV</label>
                 
-                <form wire:submit.prevent="importDataPeserta" class="flex flex-wrap items-center gap-2 bg-slate-700 p-2 rounded-lg w-full md:w-auto">
-                    <input type="file" wire:model.live="file_import_peserta" accept=".csv" class="text-sm text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-bold file:bg-blue-100 file:text-blue-800 hover:file:bg-blue-200 cursor-pointer">
-                    
-                    <div class="mb-4">
-                        <label class="block text-slate-500 text-xs font-bold uppercase mb-2">1. Pilih Tingkat Sekolah</label>
-                        <select wire:model.live="tingkat" class="w-full border-2 border-blue-300 bg-blue-50 rounded-lg p-3 font-bold text-blue-900 focus:ring focus:ring-blue-200 transition">
+                <form wire:submit.prevent="importDataPeserta" class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                    <div>
+                        <label class="block text-slate-300 text-[11px] mb-1">1. Tingkat</label>
+                        <select wire:model.live="tingkat" class="w-full bg-slate-700 text-white text-xs border border-slate-600 rounded-md p-2 font-bold focus:ring-2 focus:ring-blue-500">
                             <option value="SD">SD / MI Sederajat</option>
                             <option value="SMP">SMP / MTs Sederajat</option>
                             <option value="SMA">SMA / SMK / MA Sederajat</option>
-                            <option value="UMUM">UMUM / PURNA PASKIBRAKA</option>
+                            <option value="UMUM">UMUM / PURNA</option>
                         </select>
-                        @error('tingkat') <span class="text-red-500 text-xs font-bold">{{ $message }}</span> @enderror
                     </div>
 
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded shadow-lg text-sm flex items-center gap-2">
-                        <span wire:loading.remove wire:target="importDataPeserta">📥 Import CSV</span>
-                        <span wire:loading wire:target="importDataPeserta">⏳ Loading...</span>
-                    </button>
-                    
-                    <div wire:loading wire:target="file_import_peserta" class="text-xs text-blue-400 font-bold animate-pulse mt-1 w-full">
-                        ⏳ Sedang membaca file... Jangan klik Import dulu!
+                    <div>
+                        <label class="block text-slate-300 text-[11px] mb-1">2. File Berkas (.csv)</label>
+                        <input type="file" wire:model.live="file_import_peserta" accept=".csv" class="w-full text-[11px] text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer">
+                    </div>
+
+                    <div>
+                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-3 rounded-md text-xs flex items-center justify-center gap-1 shadow transition">
+                            <span wire:loading.remove wire:target="importDataPeserta">📥 Import CSV</span>
+                            <span wire:loading wire:target="importDataPeserta">⏳ Memproses...</span>
+                        </button>
                     </div>
                 </form>
 
-                <button wire:click="create" class="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-6 rounded shadow-lg flex items-center justify-center gap-2 w-full md:w-auto">
-                    <span>+ Tambah Manual</span>
-                </button>
+                <div wire:loading wire:target="file_import_peserta" class="text-[11px] text-blue-400 font-bold animate-pulse mt-2">
+                    ⏳ Sistem sedang membaca file berkas... Mohon jangan klik import dahulu!
+                </div>
             </div>
+
+            <div class="lg:col-span-2 text-right">
+                @if($selected_lomba_id && !$is_create)
+                    <button wire:click="create" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg flex items-center justify-center gap-2 transition transform hover:-translate-y-0.5">
+                        <span>+ Tambah Manual</span>
+                    </button>
+                @endif
+            </div>
+
         </div>
     </div>
 
@@ -52,11 +63,13 @@
     @endif
 
     @if($is_create)
-        <div class="bg-white p-6 rounded-lg shadow-lg border border-gray-200 mb-6 animate-fade-in-down">
-            <h3 class="text-xl font-bold mb-6 text-gray-800 border-b pb-2">{{ $is_edit ? 'Edit Data Peserta' : 'Registrasi Peserta Baru' }}</h3>
+        <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-green-600 mb-6 animate-fade-in-down">
+            <h3 class="text-xl font-bold mb-6 text-gray-800 border-b pb-2">
+                {{ $is_edit ? 'Edit Data Registrasi Peserta' : 'Registrasi Peserta Baru (Manual)' }}
+            </h3>
             
             <form wire:submit.prevent="{{ $is_edit ? 'update' : 'store' }}">
-                <div class="grid grid-cols-1 md:grid-cols-12 gap-6 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4 mb-6">
                     
                     <div class="md:col-span-2">
                         <label class="block text-sm font-bold mb-2 text-gray-600">No. Urut</label>
@@ -66,14 +79,14 @@
                         </div>
                     </div>
 
-                    <div class="md:col-span-6">
+                    <div class="md:col-span-4">
                         <label class="block text-sm font-bold mb-2 text-gray-600">Nama Sekolah / Pasukan</label>
-                        <input type="text" wire:model="nama_sekolah" class="w-full border border-gray-300 p-3 rounded font-bold uppercase focus:ring-2 focus:ring-blue-500" placeholder="Contoh: SMAN 1 BEKASI">
+                        <input type="text" wire:model="nama_sekolah" class="w-full border border-gray-300 p-3 rounded-md font-bold uppercase focus:ring-2 focus:ring-blue-500" placeholder="Contoh: SMAN 1 BEKASI">
                     </div>
 
-                    <div class="mb-4">
-                        <label class="block text-slate-500 text-xs font-bold uppercase mb-2">Tingkat Sekolah</label>
-                        <select wire:model.live="tingkat" class="w-full border-2 border-slate-200 rounded-lg p-3 font-bold text-slate-700">
+                    <div class="md:col-span-3">
+                        <label class="block text-sm font-bold mb-2 text-gray-600">Tingkat Sekolah</label>
+                        <select wire:model.live="tingkat" class="w-full border border-gray-300 p-3 rounded-md font-bold text-gray-700 bg-white focus:ring-2 focus:ring-blue-500">
                             <option value="SD">SD / MI Sederajat</option>
                             <option value="SMP">SMP / MTs Sederajat</option>
                             <option value="SMA">SMA / SMK / MA Sederajat</option>
@@ -81,28 +94,28 @@
                         </select>
                     </div>
                     
-                    <div class="md:col-span-4">
+                    <div class="md:col-span-3">
                         <label class="block text-sm font-bold mb-2 text-gray-600">Nama Danton (Opsional)</label>
-                        <input type="text" wire:model="nama_danton" class="w-full border border-gray-300 p-3 rounded uppercase focus:ring-2 focus:ring-blue-500" placeholder="Nama Komandan">
+                        <input type="text" wire:model="nama_danton" class="w-full border border-gray-300 p-3 rounded-md uppercase focus:ring-2 focus:ring-blue-500" placeholder="Nama Komandan">
                     </div>
                 </div>
 
                 <div class="flex justify-end gap-3 border-t pt-4">
-                    <button type="button" wire:click="cancel" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-6 rounded transition">Batal</button>
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-8 rounded shadow-lg transition">Simpan Data</button>
+                    <button type="button" wire:click="cancel" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-6 rounded-md transition">Batal</button>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-8 rounded-md shadow-lg transition">Simpan Data</button>
                 </div>
             </form>
         </div>
     @endif
 
-    
     <div class="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
         <table class="w-full text-left">
             <thead class="bg-gray-100 text-gray-600 uppercase text-xs font-bold tracking-wider">
                 <tr>
                     <th class="p-4 border-b text-center w-20">No. Urut</th>
                     <th class="p-4 border-b">Nama Sekolah</th>
-                    <th class="p-4 border-b text-center">Tingkat</th> <th class="p-4 border-b">Nama Danton</th>
+                    <th class="p-4 border-b text-center">Tingkat</th> 
+                    <th class="p-4 border-b">Nama Danton</th>
                     <th class="p-4 border-b text-center">Status Tampil</th>
                     <th class="p-4 border-b text-center w-32">Aksi</th>
                 </tr>
@@ -143,14 +156,14 @@
                     <tr>
                         <td colspan="6" class="p-10 text-center text-gray-400">
                             Belum ada peserta terdaftar.<br>
-                            <span class="text-sm">Silakan tambah peserta baru untuk memulai.</span>
+                            <span class="text-sm">Silakan tambah peserta baru atau jalankan fitur import CSV.</span>
                         </td>
                     </tr>
                     @endforelse
                 @else
                     <tr>
                         <td colspan="6" class="p-10 text-center text-gray-400 bg-gray-50">
-                            👈 Silakan pilih Event di atas terlebih dahulu.
+                            👈 Silakan pilih Event di atas terlebih dahulu untuk memantau klasemen tim.
                         </td>
                     </tr>
                 @endif
