@@ -131,9 +131,9 @@
                             {{ substr(auth()->user()->nama, 0, 1) }}
                         </div>
                         
-                        <form method="POST" action="{{ route('logout') }}" class="ml-2 border-l pl-4 border-slate-200">
+                        <form method="POST" action="{{ route('logout') }}" class="inline">
                             @csrf
-                            <button type="submit" class="text-xs font-bold text-red-600 hover:text-red-800 hover:underline">
+                            <button type="submit" class="text-red-500 font-bold hover:text-red-700 w-full text-left">
                                 Logout
                             </button>
                         </form>

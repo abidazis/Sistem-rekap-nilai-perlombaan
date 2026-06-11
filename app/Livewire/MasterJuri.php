@@ -59,21 +59,31 @@ class MasterJuri extends Component
     {
         $this->validate([
             'nama' => 'required',
-            'username' => 'required|unique:juri,username', // Pastikan nama tabelnya 'juris' kalau pakai standar laravel
+            'username' => 'required|unique:juri,username',
             'password' => 'required|min:4',
             'posisi' => 'required'
         ]);
 
-        Juri::create([
-            'lomba_id' => $this->selected_lomba_id,
-            'nama' => $this->nama,
-            'posisi' => $this->posisi, // Misal: Juri PBB 1
-            'username' => $this->username,
-            'password' => Hash::make($this->password), // Enkripsi password
-            'kategori_ids' => $this->kategori_ids // Simpan centangan (BARU)
+        // 1. BUAT AKUN DI TABEL USER DENGAN DUMMY EMAIL
+        \App\Models\User::create([
+            'name' => $this->nama,
+            'username' => $this->username, 
+            'email' => $this->username . '@pandara.local',
+            'password' => Hash::make($this->password),
+            'role' => 'juri'
         ]);
 
-        session()->flash('message', 'Akun Juri Berhasil Dibuat beserta Hak Akses Kategori!');
+        // 2. SIMPAN DATA PROFIL JURI
+        \App\Models\Juri::create([
+            'lomba_id' => $this->selected_lomba_id,
+            'nama' => $this->nama,
+            'posisi' => $this->posisi,
+            'username' => $this->username,
+            'password' => Hash::make($this->password),
+            'kategori_ids' => $this->kategori_ids 
+        ]);
+
+        session()->flash('message', 'Akun Juri Berhasil Dibuat dan Bisa Digunakan Untuk Login!');
         $this->cancel();
     }
 

@@ -10,7 +10,7 @@ class Juri extends Authenticatable // Ganti ini
     use Notifiable;
 
     protected $table = 'juri';
-
+    protected $guarded = [];
     protected $fillable = [
         'lomba_id', 
         'nama', 

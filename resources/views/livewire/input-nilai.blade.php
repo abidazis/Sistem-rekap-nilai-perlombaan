@@ -6,12 +6,22 @@
             
             <div>
                 <label class="block text-slate-400 text-xs font-bold uppercase mb-1">Event:</label>
-                <select wire:model.live="selected_lomba_id" class="w-full bg-slate-800 text-white border border-slate-700 rounded p-2 text-sm font-bold">
-                    <option value="">-- PILIH EVENT --</option>
-                    @foreach($events as $event)
-                        <option value="{{ $event->id }}">{{ $event->nama_lomba }}</option>
-                    @endforeach
-                </select>
+                @if($is_juri_locked)
+                    <select class="w-full bg-slate-800 text-white border border-slate-700 rounded p-2 text-sm font-bold opacity-60 cursor-not-allowed" disabled>
+                        @foreach($events as $event)
+                            @if($selected_lomba_id == $event->id)
+                                <option value="{{ $event->id }}" selected>{{ $event->nama_lomba }}</option>
+                            @endif
+                        @endforeach
+                    </select>
+                @else
+                    <select wire:model.live="selected_lomba_id" class="w-full bg-slate-800 text-white border border-slate-700 rounded p-2 text-sm font-bold focus:ring-2 focus:ring-blue-500">
+                        <option value="">-- PILIH EVENT --</option>
+                        @foreach($events as $event)
+                            <option value="{{ $event->id }}">{{ $event->nama_lomba }}</option>
+                        @endforeach
+                    </select>
+                @endif
             </div>
 
             <div>
@@ -38,12 +48,19 @@
 
             <div>
                 <label class="block text-red-400 text-xs font-bold uppercase mb-1">Input Sbg Juri:</label>
-                <select wire:model.live="selected_juri_id" class="w-full bg-red-900 text-white border border-red-700 rounded p-2 font-bold focus:ring-2 focus:ring-red-500">
-                    <option value="">-- PILIH JURI --</option>
-                    @foreach($juris as $j)
-                        <option value="{{ $j->id }}">{{ $j->nama }} ({{ $j->posisi }})</option>
-                    @endforeach
-                </select>
+                @if($is_juri_locked)
+                    <span class="text-[10px] text-red-300 italic mt-1 block">*Akun dikunci untuk nama juri ini.</span>
+                    <select class="w-full bg-red-900 text-white border border-red-700 rounded p-2 font-bold opacity-60 cursor-not-allowed" disabled>
+                        <option value="{{ $selected_juri_id }}" selected>{{ $nama_juri_locked }}</option>
+                    </select>
+                @else
+                    <select wire:model.live="selected_juri_id" class="w-full bg-red-900 text-white border border-red-700 rounded p-2 font-bold focus:ring-2 focus:ring-red-500">
+                        <option value="">-- PILIH JURI --</option>
+                        @foreach($juris as $j)
+                            <option value="{{ $j->id }}">{{ $j->nama }} ({{ $j->posisi }})</option>
+                        @endforeach
+                    </select>
+                @endif
             </div>
 
             <div>
