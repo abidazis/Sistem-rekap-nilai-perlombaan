@@ -48,7 +48,7 @@
                     <span x-show="sidebarOpen" class="ml-3 font-semibold text-sm whitespace-nowrap">LEADERBOARD</span>
                 </a>
 
-                @if(auth()->check() && str_contains(strtolower(auth()->user()->posisi), 'admin'))
+                @if(auth()->check() && auth()->user()->role === 'admin')
                     <div x-show="sidebarOpen" class="mt-4 px-6 text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">Master Data</div>
                     <div x-show="!sidebarOpen" class="mt-4 text-center text-slate-600 text-xs">•••</div>
 
@@ -89,7 +89,7 @@
                     <span x-show="sidebarOpen" class="ml-3 font-semibold text-sm whitespace-nowrap">INPUT JUARA SPESIAL</span>
                 </a>
 
-                @if(auth()->check() && str_contains(strtolower(auth()->user()->posisi), 'admin'))
+                @if(auth()->check() && auth()->user()->role === 'admin')
                     <a href="/input-denda" wire:navigate class="flex items-center mx-3 px-3 py-3 rounded-lg transition-colors {{ request()->is('input-denda') ? 'bg-red-600 text-white font-bold shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}" :class="!sidebarOpen ? 'justify-center' : ''">
                         <span class="text-xl">⚠️</span>
                         <span x-show="sidebarOpen" class="ml-3 font-semibold text-sm whitespace-nowrap">Pengurangan Nilai</span>
@@ -113,7 +113,7 @@
                         </svg>
                     </button>
                     <h2 class="text-lg font-black text-slate-800 hidden sm:block tracking-tight">
-                        @if(auth()->check() && str_contains(strtolower(auth()->user()->posisi), 'admin'))
+                        @if(auth()->check() && auth()->user()->role === 'admin')
                             Administrator Panel
                         @else
                             Tim Rekap Panel
@@ -125,7 +125,7 @@
                     @auth
                         <div class="text-right hidden sm:block">
                             <p class="text-sm font-bold text-slate-800">{{ auth()->user()->nama }}</p>
-                            <p class="text-[10px] text-green-600 font-bold uppercase tracking-wider">● Online ({{ auth()->user()->posisi }})</p>
+                            <p class="text-[10px] text-green-600 font-bold uppercase tracking-wider">● Online ({{ auth()->user()->role }})</p>
                         </div>
                         <div class="h-9 w-9 rounded-full bg-slate-800 flex items-center justify-center text-white font-bold shadow-md">
                             {{ substr(auth()->user()->nama, 0, 1) }}

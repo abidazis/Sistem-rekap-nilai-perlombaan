@@ -36,16 +36,30 @@ class InputNilai extends Component
             $this->selected_lomba_id = $latest->id;
         }
 
-        // 2. CEK MUTLAK: Apakah username yang login ada di tabel Juri?
+        // 2. CEK OTORISASI BERDASARKAN "POSISI" DI TABEL JURI
         if (auth()->check()) {
+            // Cari data juri berdasarkan username login
             $juri_login = Juri::where('username', auth()->user()->username)->first();
             
             if ($juri_login) {
-                // JIKA ADA, KUNCI SEMUANYA!
-                $this->is_juri_locked = true;
-                $this->nama_juri_locked = $juri_login->nama . ' (' . $juri_login->posisi . ')';
-                $this->selected_juri_id = $juri_login->id;
-                $this->selected_lomba_id = $juri_login->lomba_id;
+                $posisi = strtolower($juri_login->posisi);
+                
+                // Pastikan Juri tersebut BUKAN Admin atau Timer
+                if (!str_contains($posisi, 'admin') && !str_contains($posisi, 'timer')) {
+                    
+                    // JIKA BENAR JURI LAPANGAN, KUNCI TOTAL!
+                    $this->is_juri_locked = true;
+                    $this->nama_juri_locked = $juri_login->nama . ' (' . $juri_login->posisi . ')';
+                    $this->selected_juri_id = $juri_login->id;
+                    $this->selected_lomba_id = $juri_login->lomba_id;
+                    
+                } else {
+                    // JIKA DIA ADMIN REKAP, BEBASKAN!
+                    $this->is_juri_locked = false;
+                }
+            } else {
+                // JIKA SAMA SEKALI BUKAN JURI (Super Admin), BEBASKAN!
+                $this->is_juri_locked = false;
             }
         }
     }

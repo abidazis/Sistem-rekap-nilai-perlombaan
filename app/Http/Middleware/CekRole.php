@@ -19,10 +19,10 @@ class CekRole
             return redirect('/login');
         }
 
-        $posisi = strtolower(auth()->user()->posisi);
+        $role = strtolower(auth()->user()->role);
         
         foreach ($roles as $role) {
-            if (str_contains($posisi, strtolower($role))) {
+            if (str_contains($role, strtolower($role))) {
                 return $next($request);
             }
         }

@@ -6,7 +6,7 @@
             
             <div>
                 <label class="block text-slate-400 text-xs font-bold uppercase mb-1">Event:</label>
-                @if($is_juri_locked)
+                {{-- @if($is_juri_locked)
                     <select class="w-full bg-slate-800 text-white border border-slate-700 rounded p-2 text-sm font-bold opacity-60 cursor-not-allowed" disabled>
                         @foreach($events as $event)
                             @if($selected_lomba_id == $event->id)
@@ -14,14 +14,14 @@
                             @endif
                         @endforeach
                     </select>
-                @else
+                @else --}}
                     <select wire:model.live="selected_lomba_id" class="w-full bg-slate-800 text-white border border-slate-700 rounded p-2 text-sm font-bold focus:ring-2 focus:ring-blue-500">
                         <option value="">-- PILIH EVENT --</option>
                         @foreach($events as $event)
                             <option value="{{ $event->id }}">{{ $event->nama_lomba }}</option>
                         @endforeach
                     </select>
-                @endif
+                {{-- @endif --}}
             </div>
 
             <div>

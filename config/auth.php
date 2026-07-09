@@ -38,7 +38,7 @@ return [
     'guards' => [
         'web' => [
             'driver' => 'session',
-            'provider' => 'juris', // Ganti ini
+            'provider' => 'users', // Ganti ini
         ],
     ],
 
@@ -60,9 +60,10 @@ return [
     */
 
     'providers' => [
-        'juris' => [ // Ganti ini
+        'users' => [
             'driver' => 'eloquent',
-            'model' => App\Models\Juri::class,
+            // HARUS MENGARAH KE USER, BUKAN JURI!
+            'model' => App\Models\User::class, 
         ],
     ],
 
