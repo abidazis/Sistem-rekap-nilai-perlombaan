@@ -12,6 +12,7 @@ use App\Livewire\RekapJuara;
 use App\Livewire\InputDenda;
 use App\Http\Controllers\CetakController;
 use App\Http\Controllers\LoginController;
+use App\Livewire\AuditJuri;
 
 // ==========================================
 // ROUTE LOGIN & LOGOUT (Bisa diakses tanpa login)
@@ -39,7 +40,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/master-peserta', MasterPeserta::class)->name('master.peserta');
         Route::get('/master-juri', MasterJuri::class)->name('master.juri');
         Route::get('/input-denda', InputDenda::class)->name('input.denda');
-        
+        Route::get('/audit-juri', AuditJuri::class)->name('audit.juri');
+
         // Fitur Cetak & Export
         Route::get('/cetak-klasemen/{lomba_id}', [CetakController::class, 'cetakKlasemen']);
         Route::get('/cetak-peserta/{peserta_id}', [CetakController::class, 'cetakPeserta']);

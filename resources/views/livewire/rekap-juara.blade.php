@@ -8,7 +8,7 @@
         </div>
         
         <div class="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
-            @if(auth()->check() && str_contains(strtolower(auth()->user()->posisi), 'admin'))
+            @if(auth()->check() && auth()->user()->role === 'admin')
                 <button onclick="window.open('/cetak-kategori/{{ $selected_lomba_id }}/{{ $selected_tingkat ?? 'SMP' }}', '_blank')" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2 px-3 rounded-lg shadow flex items-center gap-1">
                     🏅 Kategori
                 </button>

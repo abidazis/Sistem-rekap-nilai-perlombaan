@@ -96,8 +96,13 @@
                     </a>
                 @endif
 
-                {{-- <div x-show="sidebarOpen" class="mt-4 px-6 text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">Hasil Lomba</div>
-                <div x-show="!sidebarOpen" class="mt-4 text-center text-slate-600 text-xs">•••</div> --}}
+                <div x-show="sidebarOpen" class="mt-4 px-6 text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">Hasil Lomba & Audit</div>
+                <div x-show="!sidebarOpen" class="mt-4 text-center text-slate-600 text-xs">•••</div>
+
+                <a href="{{ route('audit.juri') }}" wire:navigate class="flex items-center mx-3 px-3 py-3 rounded-lg transition-colors {{ request()->routeIs('audit.juri') ? 'bg-purple-600 text-white font-bold shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}" :class="!sidebarOpen ? 'justify-center' : ''">
+                    <span class="text-xl">🔍</span>
+                    <span x-show="sidebarOpen" class="ml-3 font-semibold text-sm whitespace-nowrap">AUDIT JURI</span>
+                </a>
             </nav>
         </aside>
 
