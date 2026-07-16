@@ -3,7 +3,7 @@
 namespace App\Livewire;
 
 use Livewire\Component;
-use Livewire\WithFileUploads; // Wajib untuk upload file
+use Livewire\WithFileUploads; 
 use App\Models\Lomba;
 use App\Models\KategoriPenilaian;
 use Livewire\Attributes\Layout;
@@ -13,20 +13,17 @@ class MasterEvent extends Component
 {
     use WithFileUploads;
 
-    // 1. Variabel Form Event
     public $nama_lomba, $tanggal_pelaksanaan, $lokasi, $durasi_maksimal_detik = 600;
     public $lomba_id;
     
-    // Variabel Logo
     public $logo; 
-    public $logo_lama; // Untuk preview saat edit
+    public $logo_lama; 
     
-    // 2. Variabel Pengaturan Tambahan (Klasemen & Tie Breaker)
     public $format_juara = 'all_harapan';
-    public $urutan_juara_teks; // Input dari textarea (Pisahkan dengan Enter)
+    public $urutan_juara_teks; 
+    public $kuota_juara = 0; // 0 = All Trophy
     public $tie_breakers = [];
 
-    // 3. Mode
     public $is_create = false;
     public $is_edit = false;
 
@@ -47,7 +44,6 @@ class MasterEvent extends Component
     public function create()
     {
         $this->resetFields();
-        // Default template urutan juara
         $this->urutan_juara_teks = "Juara Utama 1\nJuara Utama 2\nJuara Utama 3\nJuara Harapan 1\nJuara Harapan 2\nJuara Harapan 3";
         $this->is_create = true;
         $this->is_edit = false;
@@ -60,17 +56,16 @@ class MasterEvent extends Component
             'tanggal_pelaksanaan' => 'required|date',
             'lokasi' => 'required',
             'durasi_maksimal_detik' => 'required|numeric',
-            'logo' => 'nullable|image|max:2048', // Max 2MB
-            'urutan_juara_teks' => 'required'
+            'logo' => 'nullable|image|max:2048', 
+            'urutan_juara_teks' => 'required',
+            'kuota_juara' => 'nullable|numeric'
         ]);
 
-        // Proses Upload Logo
         $logoPath = null;
         if ($this->logo) {
             $logoPath = $this->logo->store('event-logos', 'public');
         }
 
-        // Pecah teks (enter) jadi Array JSON
         $urutanArray = array_values(array_filter(array_map('trim', explode("\n", $this->urutan_juara_teks))));
 
         Lomba::create([
@@ -80,6 +75,7 @@ class MasterEvent extends Component
             'durasi_maksimal_detik' => $this->durasi_maksimal_detik,
             'logo' => $logoPath,
             'urutan_juara' => $urutanArray,
+            'kuota_juara' => $this->kuota_juara ?: 0,
             'format_juara' => $this->format_juara,
             'status_aktif' => true
         ]);
@@ -99,9 +95,9 @@ class MasterEvent extends Component
         $this->logo_lama = $lomba->logo;
         
         $this->format_juara = $lomba->format_juara ?? 'all_harapan';
+        $this->kuota_juara = $lomba->kuota_juara ?? 0;
         $this->tie_breakers = is_array($lomba->tie_breakers) ? $lomba->tie_breakers : [];
         
-        // Gabungkan array jadi string teks dengan enter
         $this->urutan_juara_teks = is_array($lomba->urutan_juara) ? implode("\n", $lomba->urutan_juara) : "Juara Utama 1\nJuara Utama 2\nJuara Utama 3";
 
         $this->is_create = true; 
@@ -116,7 +112,8 @@ class MasterEvent extends Component
             'lokasi' => 'required',
             'durasi_maksimal_detik' => 'required|numeric',
             'logo' => 'nullable|image|max:2048',
-            'urutan_juara_teks' => 'required'
+            'urutan_juara_teks' => 'required',
+            'kuota_juara' => 'nullable|numeric'
         ]);
 
         $lomba = Lomba::find($this->lomba_id);
@@ -128,11 +125,11 @@ class MasterEvent extends Component
             'lokasi' => $this->lokasi,
             'durasi_maksimal_detik' => $this->durasi_maksimal_detik,
             'urutan_juara' => $urutanArray,
+            'kuota_juara' => $this->kuota_juara ?: 0,
             'format_juara' => $this->format_juara,
             'tie_breakers' => $this->tie_breakers
         ];
 
-        // Replace logo lama jika ada upload baru
         if ($this->logo) {
             if ($lomba->logo) {
                 Storage::disk('public')->delete($lomba->logo);
@@ -172,6 +169,7 @@ class MasterEvent extends Component
         $this->logo_lama = null;
         $this->durasi_maksimal_detik = 600;
         $this->format_juara = 'all_harapan';
+        $this->kuota_juara = 0;
         $this->tie_breakers = [];
         $this->urutan_juara_teks = '';
     }

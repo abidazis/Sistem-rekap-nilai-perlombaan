@@ -112,6 +112,11 @@
                                                     <span class="text-xs text-gray-400 italic">*Pisahkan setiap urutan juara dengan tombol Enter (Garis Baru). Urutan ini akan langsung tercetak di Berita Acara PDF.</span>
                                                 </div>
 
+                                                <div class="mt-4">
+                                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Batas Kuota Juara (Trophy)</label>
+                                                    <input type="number" wire:model="kuota_juara" class="w-full border border-slate-300 rounded p-2 text-sm font-bold text-slate-700 bg-white focus:ring-2 focus:ring-indigo-500" placeholder="0">
+                                                    <span class="text-xs text-blue-500 font-semibold italic">*Isi angka 0 jika event ini ALL TROPHY (Semua dapat gelar juara). Misal diisi 15, maka peringkat 16 dst hanya akan tertulis "Peringkat Ke-16".</span>
+                                                </div>
                                                 </div>
                                         </div>
                                     @else

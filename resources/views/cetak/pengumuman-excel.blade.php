@@ -1,155 +1,137 @@
 <table border="0" style="font-family: Arial, sans-serif; border-collapse: collapse; width: 100%;">
-    <tr>
-        <th colspan="5" style="background-color: #1e293b; color: #ffffff; font-size: 18px; font-weight: bold; text-align: center; padding: 15px;">
-            PENGUMUMAN JUARA {{ strtoupper($lomba->nama_lomba) }} - TINGKAT {{ strtoupper($tingkat) }}
-            <br>
-            <span style="font-size: 14px;">TANGGAL: {{ \Carbon\Carbon::parse($lomba->tanggal_pelaksanaan)->format('d F Y') }}</span>
-        </th>
-    </tr>
-    <tr><td colspan="5"></td></tr> 
-    
-    <tr>
-        <th colspan="5" style="background-color: #22c55e; color: #ffffff; font-size: 16px; font-weight: bold; text-align: center; border: 1px solid #000; padding: 8px;">
-            🏆 DAFTAR KLASEMEN JUARA BERJENJANG
-        </th>
-    </tr>
-    <tr>
-        <th style="background-color: #facc15; font-weight: bold; text-align: center; border: 1px solid #000;">PREDIKAT JUARA</th>
-        <th style="background-color: #facc15; font-weight: bold; text-align: center; border: 1px solid #000;">NO. URUT</th>
-        <th style="background-color: #facc15; font-weight: bold; text-align: center; border: 1px solid #000;">NAMA SEKOLAH / TIM</th>
-        <th style="background-color: #facc15; font-weight: bold; text-align: center; border: 1px solid #000;">GRAND TOTAL</th>
-        @if(count($tb_kategoris) > 0)
-            <th style="background-color: #fef08a; font-weight: bold; text-align: center; border: 1px solid #000;">{{ strtoupper($tb_kategoris->first()->nama_kategori) }} (TIE-BREAKER)</th>
-        @else
-            <th style="background-color: #facc15; font-weight: bold; text-align: center; border: 1px solid #000;">KETERANGAN</th>
-        @endif
-    </tr>
-    @foreach($ranked as $idx => $p)
-        @php
-            $urutan = $idx + 1;
-            if($urutan <= 3) $label = "UTAMA $urutan";
-            elseif($urutan <= 6) $label = "HARAPAN " . ($urutan-3);
-            elseif($urutan <= 9) $label = "MADYA " . ($urutan-6);
-            elseif($urutan <= 12) $label = "BINA " . ($urutan-9);
-            elseif($urutan <= 15) $label = "MULA " . ($urutan-12);
-            elseif($urutan <= 18) $label = "PURWA " . ($urutan-15);
-            elseif($urutan <= 21) $label = "CARAKA " . ($urutan-18);
-            elseif($urutan <= 24) $label = "PERINTIS " . ($urutan-21);
-            elseif($urutan <= 27) $label = "POTENSIAL " . ($urutan-24);
-            else $label = "PESERTA " . ($urutan-27);
-        @endphp
-        <tr>
-            <td style="border: 1px solid #000; font-weight: bold; text-align: left;">{{ $label }}</td>
-            <td style="border: 1px solid #000; text-align: center; font-weight: bold;">#{{ $p->no_urut }}</td>
-            <td style="border: 1px solid #000; font-weight: bold;">{{ strtoupper($p->nama_sekolah) }}</td>
-            <td style="border: 1px solid #000; text-align: center; font-weight: bold; color: #b91c1c;">{{ number_format($p->grand_total, 0, ',', '.') }}</td>
-            
-            @if(count($tb_kategoris) > 0)
-                <td style="border: 1px solid #000; text-align: center; font-weight: bold;">{{ number_format($p->skor_kategori[$tb_kategoris->first()->id] ?? 0, 0, ',', '.') }}</td>
-            @else
-                <td style="border: 1px solid #000;"></td>
-            @endif
-        </tr>
-    @endforeach
-    
-    <tr><td colspan="5"></td></tr> 
-    
-    <tr>
-        <th colspan="5" style="background-color: #3b82f6; color: #ffffff; font-size: 16px; font-weight: bold; text-align: center; border: 1px solid #000; padding: 8px;">
-            👑 KANDIDAT JUARA UMUM (AKUMULASI KATEGORI)
-        </th>
-    </tr>
-    <tr>
-        <th style="background-color: #bfdbfe; font-weight: bold; text-align: center; border: 1px solid #000;">RANK</th>
-        <th style="background-color: #bfdbfe; font-weight: bold; text-align: center; border: 1px solid #000;">NO. URUT</th>
-        <th style="background-color: #bfdbfe; font-weight: bold; text-align: center; border: 1px solid #000;">NAMA SEKOLAH / TIM</th>
-        <th colspan="2" style="background-color: #bfdbfe; font-weight: bold; text-align: center; border: 1px solid #000;">TOTAL POIN UMUM</th>
-    </tr>
-    @foreach($juaraUmum as $idx => $p)
-        <tr>
-            <td style="border: 1px solid #000; text-align: center; font-weight: bold;">JUARA UMUM {{ $idx + 1 }}</td>
-            <td style="border: 1px solid #000; text-align: center; font-weight: bold;">#{{ $p->no_urut }}</td>
-            <td style="border: 1px solid #000; font-weight: bold;">{{ strtoupper($p->nama_sekolah) }}</td>
-            <td colspan="2" style="border: 1px solid #000; text-align: center; font-weight: bold;">{{ number_format($p->skor_akhir_umum, 0, ',', '.') }}</td>
-        </tr>
-    @endforeach
-    
-    <tr><td colspan="5"></td></tr> 
-    
-    <tr>
-        <th colspan="5" style="background-color: #9333ea; color: #ffffff; font-size: 16px; font-weight: bold; text-align: center; border: 1px solid #000; padding: 8px;">
-            🌟 JUARA TERBAIK PER KATEGORI (TOP 3)
-        </th>
-    </tr>
-    @foreach($bestCategories as $bc)
-        @php
-            $kat = $bc['kategori'];
-            $p_list = $bc['pesertas'];
-            if(count($p_list) == 0) continue;
-            
-            $tb_kat = $tb_kategoris->firstWhere('id', '!=', $kat->id);
-            if (!$tb_kat && count($tb_kategoris) > 0) $tb_kat = $tb_kategoris->first();
-        @endphp
-        <tr>
-            <th colspan="5" style="background-color: #f3e8ff; text-align: left; font-weight: bold; font-size: 14px; border: 1px solid #000; padding-top: 10px;">
-                ► TERBAIK {{ strtoupper($kat->nama_kategori) }}
-            </th>
-        </tr>
-        <tr>
-            <th style="background-color: #e9d5ff; font-weight: bold; text-align: center; border: 1px solid #000;">RANK</th>
-            <th style="background-color: #e9d5ff; font-weight: bold; text-align: center; border: 1px solid #000;">NO. URUT</th>
-            <th style="background-color: #e9d5ff; font-weight: bold; text-align: center; border: 1px solid #000;">NAMA SEKOLAH / TIM</th>
-            <th style="background-color: #e9d5ff; font-weight: bold; text-align: center; border: 1px solid #000;">NILAI MURNI</th>
-            @if($tb_kat)
-                <th style="background-color: #fef08a; font-weight: bold; text-align: center; border: 1px solid #000;">{{ strtoupper($tb_kat->nama_kategori) }} (TIE)</th>
-            @else
-                <th style="background-color: #e9d5ff; border: 1px solid #000;"></th>
-            @endif
-        </tr>
-        @foreach($p_list as $idx => $p)
-            <tr>
-                <td style="border: 1px solid #000; text-align: center; font-weight: bold;">RANK {{ $idx + 1 }}</td>
-                <td style="border: 1px solid #000; text-align: center; font-weight: bold;">#{{ $p->no_urut }}</td>
-                <td style="border: 1px solid #000; font-weight: bold;">{{ strtoupper($p->nama_sekolah) }}</td>
-                <td style="border: 1px solid #000; text-align: center; font-weight: bold;">{{ number_format($p->skor_spesifik, 0, ',', '.') }}</td>
-                
-                @if($tb_kat)
-                    <td style="border: 1px solid #000; text-align: center; font-weight: bold;">{{ number_format($p->skor_kategori[$tb_kat->id] ?? 0, 0, ',', '.') }}</td>
-                @else
-                    <td style="border: 1px solid #000;"></td>
-                @endif
-            </tr>
-        @endforeach
-        <tr><td colspan="5"></td></tr> 
-    @endforeach
+    <tr><td colspan="5" style="text-align: center; font-size: 14pt; font-weight: bold;">PENGUMUMAN JUARA {{ strtoupper($tingkat) }} - {{ strtoupper($lomba->nama_lomba) }}</td></tr>
+    <tr><td colspan="5"></td></tr>
 
-    @if(count($juaraSpesials) > 0)
-        <tr><td colspan="5"></td></tr> 
-        <tr>
-            <th colspan="5" style="background-color: #db2777; color: #ffffff; font-size: 16px; font-weight: bold; text-align: center; border: 1px solid #000; padding: 8px;">
-                🌟 JUARA KATEGORI SPESIAL / TERSENDIRI
-            </th>
-        </tr>
+    <!-- 1. JUARA SPESIAL / TERSENDIRI -->
+    @if(!empty($juaraSpesials))
         @foreach($juaraSpesials as $js)
-            <tr>
-                <th colspan="5" style="background-color: #fce7f3; text-align: left; font-weight: bold; font-size: 14px; border: 1px solid #000; padding-top: 10px;">
-                    ► JUARA {{ strtoupper($js['kategori']->nama_kategori) }}
-                </th>
-            </tr>
-            <tr>
-                <th style="background-color: #fbcfe8; font-weight: bold; text-align: center; border: 1px solid #000;">RANK</th>
-                <th style="background-color: #fbcfe8; font-weight: bold; text-align: center; border: 1px solid #000;">NO. URUT</th>
-                <th style="background-color: #fbcfe8; font-weight: bold; text-align: center; border: 1px solid #000;">NAMA SEKOLAH / TIM</th>
-                <th colspan="2" style="background-color: #fbcfe8; font-weight: bold; text-align: center; border: 1px solid #000;">KETERANGAN</th>
-            </tr>
-            @foreach($js['pemenang'] as $w)
-                <tr>
-                    <td style="border: 1px solid #000; text-align: center; font-weight: bold;">RANK {{ $w->rank }}</td>
-                    <td style="border: 1px solid #000; text-align: center; font-weight: bold;">#{{ $w->peserta->no_urut ?? '-' }}</td>
-                    <td style="border: 1px solid #000; font-weight: bold;">{{ strtoupper($w->peserta->nama_sekolah ?? '-') }}</td>
-                    <td colspan="2" style="border: 1px solid #000; text-align: center; font-weight: bold; color: #9d174d;">JUARA {{ $w->rank }}</td>
-                </tr>
-            @endforeach
+        <tr><td colspan="5" style="font-weight: bold; font-size: 12pt;">- {{ strtoupper($js['kategori']->nama_kategori) }} -</td></tr>
+        <tr>
+            <th style="border: 1px solid #000; font-weight: bold; text-align: left;">JUARA</th>
+            <th style="border: 1px solid #000; font-weight: bold; text-align: center;">NO. URUT</th>
+            <th style="border: 1px solid #000; font-weight: bold; text-align: left;">NAMA SEKOLAH</th>
+            <th style="border: 1px solid #000; font-weight: bold; text-align: center;">NILAI</th>
+            <th style="border: 1px solid #000;"></th>
+        </tr>
+        @foreach($js['pemenang'] as $w)
+        <tr>
+            <td style="border: 1px solid #000;">{{ strtoupper($js['kategori']->nama_kategori) }} {{ $w->rank }}</td>
+            <td style="border: 1px solid #000; text-align: center;">{{ $w->peserta->no_urut ?? '-' }}</td>
+            <td style="border: 1px solid #000;">{{ strtoupper($w->peserta->nama_sekolah ?? '-') }}</td>
+            <td style="border: 1px solid #000; text-align: center;">{{ $w->nilai ?? $w->keterangan ?? '-' }}</td>
+            <td style="border: 1px solid #000;"></td>
+        </tr>
+        @endforeach
+        <tr><td colspan="5"></td></tr>
         @endforeach
     @endif
+
+    <!-- 2. UMUM -->
+    @if($pesertaUmum && $pesertaUmum->isNotEmpty())
+    <tr><td colspan="5" style="font-weight: bold; font-size: 12pt;">- UMUM -</td></tr>
+    <tr>
+        <th style="border: 1px solid #000; font-weight: bold; text-align: left;">JUARA</th>
+        <th style="border: 1px solid #000; font-weight: bold; text-align: center;">NO. URUT</th>
+        <th style="border: 1px solid #000; font-weight: bold; text-align: left;">NAMA SEKOLAH</th>
+        <th style="border: 1px solid #000; font-weight: bold; text-align: center;">NILAI</th>
+        <th style="border: 1px solid #000;"></th>
+    </tr>
+    @foreach($pesertaUmum as $idx => $p)
+    <tr>
+        <td style="border: 1px solid #000;">UMUM {{ $idx + 1 }}</td>
+        <td style="border: 1px solid #000; text-align: center;">{{ $p->no_urut }}</td>
+        <td style="border: 1px solid #000;">{{ strtoupper($p->nama_sekolah) }}</td>
+        <td style="border: 1px solid #000; text-align: center;">{{ number_format($p->skor_umum, 0, ',', '.') }}</td>
+        <td style="border: 1px solid #000;"></td>
+    </tr>
+    @endforeach
+    <tr><td colspan="5"></td></tr>
+    @endif
+
+    <!-- 3. PERINGKAT (Menampilkan Predikat Juara) -->
+    <tr><td colspan="5" style="font-weight: bold; font-size: 12pt;">- PERINGKAT -</td></tr>
+    <tr>
+        <th style="border: 1px solid #000; font-weight: bold; text-align: left;">PREDIKAT JUARA</th>
+        <th style="border: 1px solid #000; font-weight: bold; text-align: center;">NO. URUT</th>
+        <th style="border: 1px solid #000; font-weight: bold; text-align: left;">NAMA SEKOLAH</th>
+        <th style="border: 1px solid #000; font-weight: bold; text-align: center;">NILAI</th>
+        <th style="border: 1px solid #000;"></th>
+    </tr>
+    @foreach($pesertaGrandTotal->take(12) as $idx => $p)
+    <tr>
+        <!-- Pemanggilan label Predikat -->
+        <td style="border: 1px solid #000; font-weight: bold;">{{ strtoupper($p->predikat_juara) }}</td>
+        <td style="border: 1px solid #000; text-align: center;">{{ $p->no_urut }}</td>
+        <td style="border: 1px solid #000;">{{ strtoupper($p->nama_sekolah) }}</td>
+        <td style="border: 1px solid #000; text-align: center;">{{ number_format($p->grand_total, 0, ',', '.') }}</td>
+        <td style="border: 1px solid #000;"></td>
+    </tr>
+    @endforeach
+    <tr><td colspan="5"></td></tr>
+
+    <!-- 4. KATEGORI MURNI TOP 3 (PBB & KOMANDAN LOGIC) -->
+    @foreach($rankingKategori as $bc)
+        @php
+            $kat = $bc['kategori'];
+            $isPBB = stripos($kat->nama_kategori, 'PBB') !== false;
+        @endphp
+        <tr><td colspan="5" style="font-weight: bold; font-size: 12pt;">- {{ strtoupper($kat->nama_kategori) }} -</td></tr>
+        <tr>
+            <th style="border: 1px solid #000; font-weight: bold; text-align: left;">JUARA</th>
+            <th style="border: 1px solid #000; font-weight: bold; text-align: center;">NO. URUT</th>
+            <th style="border: 1px solid #000; font-weight: bold; text-align: left;">NAMA SEKOLAH</th>
+            <th style="border: 1px solid #000; font-weight: bold; text-align: center;">NILAI</th>
+            @if($isPBB)
+                <th style="border: 1px solid #000; font-weight: bold; text-align: center;">KOMANDAN</th>
+            @else
+                <th style="border: 1px solid #000; font-weight: bold; text-align: center;">PBB</th>
+            @endif
+        </tr>
+        
+        @foreach($bc['top3'] as $idx => $p)
+        <tr>
+            <td style="border: 1px solid #000;">{{ strtoupper($kat->nama_kategori) }} {{ $idx + 1 }}</td>
+            <td style="border: 1px solid #000; text-align: center;">{{ $p->no_urut }}</td>
+            <td style="border: 1px solid #000;">{{ strtoupper($p->nama_sekolah) }}</td>
+            <td style="border: 1px solid #000; text-align: center;">{{ number_format($p->skor_spesifik, 0, ',', '.') }}</td>
+            @if($isPBB)
+                <td style="border: 1px solid #000; text-align: center;">{{ number_format($p->skor_komandan, 0, ',', '.') }}</td>
+            @else
+                <td style="border: 1px solid #000; text-align: center;">{{ number_format($p->skor_pbb, 0, ',', '.') }}</td>
+            @endif
+        </tr>
+        @endforeach
+        <tr><td colspan="5"></td></tr>
+    @endforeach
+
+    <!-- 5. KLASEMEN AKHIR -->
+    <tr><td colspan="8" style="page-break-before: always;"></td></tr>
+    <tr><td colspan="8" style="text-align: center; font-size: 14pt; font-weight: bold;">REKAP NILAI KESELURUHAN & KLASEMEN AKHIR</td></tr>
+    <tr><td colspan="8"></td></tr>
+
+    <tr>
+        <th style="border: 1px solid #000; font-weight: bold; text-align: left; background-color:#ffcc00;">PREDIKAT JUARA</th>
+        <th style="border: 1px solid #000; font-weight: bold; text-align: center; background-color:#ffcc00;">NO. URUT</th>
+        <th style="border: 1px solid #000; font-weight: bold; text-align: center; background-color:#ffcc00;">NAMA SEKOLAH / TIM</th>
+        <th style="border: 1px solid #000; font-weight: bold; text-align: center; background-color:#ffcc00;">TOTAL KOTOR</th>
+        <th style="border: 1px solid #000; font-weight: bold; text-align: center; background-color:#ff9999;">MINUS</th>
+        <th style="border: 1px solid #000; font-weight: bold; text-align: center; background-color:#ff9999;">KETERANGAN MINUS</th>
+        <th style="border: 1px solid #000; font-weight: bold; text-align: center; background-color:#99ccff;">WAKTU</th>
+        <th style="border: 1px solid #000; font-weight: bold; text-align: center; background-color:#ffcc00;">GRAND TOTAL</th>
+    </tr>
+    @foreach($pesertaGrandTotal as $idx => $p)
+    <tr>
+        <!-- Pemanggilan label Predikat -->
+        <td style="border: 1px solid #000; text-align: left; font-weight: bold; color: #1e3a8a;">{{ strtoupper($p->predikat_juara) }}</td>
+        
+        <td style="border: 1px solid #000; text-align: center;">{{ $p->no_urut }}</td>
+        <td style="border: 1px solid #000; font-weight: bold;">{{ strtoupper($p->nama_sekolah) }}</td>
+        <td style="border: 1px solid #000; text-align: center;">{{ number_format($p->total_kotor, 0, ',', '.') }}</td>
+        <td style="border: 1px solid #000; text-align: center; color: red; font-weight: bold;">{{ $p->total_minus > 0 ? '-'.$p->total_minus : '0' }}</td>
+        <td style="border: 1px solid #000; font-size: 11px;">{{ $p->keterangan_denda }}</td>
+        <td style="border: 1px solid #000; text-align: center; color: blue;">{{ $p->waktu_tampil = $p->durasi_tampil_detik ? gmdate("i:s", $p->durasi_tampil_detik) : '-'; }}</td>
+        <td style="border: 1px solid #000; text-align: center; font-weight: bold;">{{ number_format($p->grand_total, 0, ',', '.') }}</td>
+    </tr>
+    @endforeach
+
 </table>
