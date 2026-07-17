@@ -1,48 +1,53 @@
 <div wire:poll.10s> 
 
     {{-- 1. Header & Filter Lengkap --}}
-    <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-        <div>
-            <h1 class="text-3xl font-extrabold text-slate-800 tracking-tight">🏆 LEADERBOARD LIVE</h1>
+    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-6">
+        <div class="w-full lg:w-1/3">
+            <h1 class="text-2xl font-extrabold text-slate-800 tracking-tight">🏆 LEADERBOARD LIVE</h1>
             <p class="text-slate-500 text-sm">Pantauan hasil perolehan nilai murni secara realtime.</p>
         </div>
         
-        <div class="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
+        <div class="flex flex-col items-start lg:items-end gap-3 w-full lg:w-2/3">
+            <!-- Baris Filter Dropdown -->
+            <div class="flex flex-wrap items-center gap-2 w-full lg:justify-end">
+                <select wire:model.live="selected_lomba_id" class="border-2 border-slate-300 rounded-lg p-2 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-blue-400 outline-none">
+                    @foreach($events as $event)
+                        <option value="{{ $event->id }}">{{ $event->nama_lomba }}</option>
+                    @endforeach
+                </select>
+
+                <select wire:model.live="selected_tingkat" class="border-2 border-blue-400 bg-blue-50 rounded-lg p-2 text-sm font-black text-blue-800 focus:ring-2 focus:ring-blue-400 outline-none">
+                    <option value="SD">SD</option>
+                    <option value="SMP">SMP</option>
+                    <option value="SMA">SMA</option>
+                    <option value="UMUM">UMUM</option>
+                </select>
+
+                <select wire:model.live="mode_tampilan" class="border-2 border-purple-400 bg-purple-50 rounded-lg p-2 text-sm font-black text-purple-800 focus:ring-2 focus:ring-purple-300 outline-none">
+                    <option value="utama">🏆 KLASEMEN UTAMA</option>
+                    <option value="umum">👑 KANDIDAT UMUM</option>
+                    <optgroup label="PER KATEGORI MURNI">
+                        @foreach($semua_kategori as $kat)
+                            <option value="{{ $kat->id }}">🔥 BEST {{ $kat->nama_kategori }}</option>
+                        @endforeach
+                    </optgroup>
+                </select>
+            </div>
+
+            <!-- Baris Tombol Cetak / Export -->
             @if(auth()->check() && auth()->user()->role === 'admin')
-                <button onclick="window.open('/cetak-kategori/{{ $selected_lomba_id }}/{{ $selected_tingkat ?? 'SMP' }}', '_blank')" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2 px-3 rounded-lg shadow flex items-center gap-1">
-                    🏅 Kategori
+            <div class="flex flex-wrap items-center gap-2 w-full lg:justify-end mt-1">
+                <button onclick="window.open('/cetak-kategori/{{ $selected_lomba_id }}/{{ $selected_tingkat ?? 'SMP' }}', '_blank')" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2.5 px-4 rounded-lg shadow-sm flex items-center gap-1.5 transition">
+                    🏅 Cetak Kategori
                 </button>
-                <button onclick="window.open('/cetak-pengumuman-pdf/{{ $selected_lomba_id }}/{{ $selected_tingkat ?? 'SMP' }}', '_blank')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-3 rounded-lg shadow flex items-center gap-1">
+                <button onclick="window.open('/cetak-pengumuman-pdf/{{ $selected_lomba_id }}/{{ $selected_tingkat ?? 'SMP' }}', '_blank')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2.5 px-4 rounded-lg shadow-sm flex items-center gap-1.5 transition">
                     📑 Lembar MC
                 </button>
-                <button onclick="window.open('/cetak-pengumuman-excel/{{ $selected_lomba_id }}/{{ $selected_tingkat ?? 'SMP' }}', '_blank')" class="bg-green-600 hover:bg-green-700 text-white text-xs font-bold py-2 px-3 rounded-lg shadow flex items-center gap-1">
+                <button onclick="window.open('/cetak-pengumuman-excel/{{ $selected_lomba_id }}/{{ $selected_tingkat ?? 'SMP' }}', '_blank')" class="bg-green-600 hover:bg-green-700 text-white text-xs font-bold py-2.5 px-4 rounded-lg shadow-sm flex items-center gap-1.5 transition">
                     📊 Export Excel
                 </button>
+            </div>
             @endif
-
-            <select wire:model.live="selected_lomba_id" class="border-2 border-slate-300 rounded-lg p-2 text-sm font-bold text-slate-700">
-                @foreach($events as $event)
-                    <option value="{{ $event->id }}">{{ $event->nama_lomba }}</option>
-                @endforeach
-            </select>
-
-            <select wire:model.live="selected_tingkat" class="border-2 border-blue-400 bg-blue-50 rounded-lg p-2 text-sm font-black text-blue-800">
-                <option value="SD">SD</option>
-                <option value="SMP">SMP</option>
-                <option value="SMA">SMA</option>
-                <option value="UMUM">UMUM</option>
-            </select>
-
-            <select wire:model.live="mode_tampilan" class="border-2 border-purple-400 bg-purple-50 rounded-lg p-2 text-sm font-black text-purple-800 focus:ring-2 focus:ring-purple-300">
-                <option value="utama">🏆 KLASEMEN UTAMA</option>
-                <option value="umum">👑 KANDIDAT UMUM</option>
-                <optgroup label="PER KATEGORI MURNI">
-                    @foreach($semua_kategori as $kat)
-                        <option value="{{ $kat->id }}">🔥 BEST {{ $kat->nama_kategori }}</option>
-                    @endforeach
-                </optgroup>
-            </select>
-
         </div>
     </div>
 

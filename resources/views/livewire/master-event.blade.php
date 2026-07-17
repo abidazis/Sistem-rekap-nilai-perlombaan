@@ -167,7 +167,7 @@
                     <td class="p-4 text-gray-600">{{ $event->lokasi }}</td>
                     <td class="p-4 text-center">
                         <span class="bg-yellow-100 text-yellow-800 text-xs font-bold px-2 py-1 rounded border border-yellow-300">
-                            {{ $event->durasi_maksimal_detik }} Detik
+                            {{ gmdate("i:s", $event->durasi_maksimal_detik) }}
                         </span>
                     </td>
                     <td class="p-4 text-center">
@@ -177,8 +177,13 @@
                             <span class="text-xs text-red-500 italic">Belum Diset</span>
                         @endif
                     </td>
-                    <td class="p-4 text-center space-x-2">
-                        <button wire:click="edit({{ $event->id }})" class="text-blue-600 hover:text-blue-800 font-bold text-sm bg-blue-50 px-3 py-1 rounded border border-blue-200">⚙️ Edit Setting</button>
+                    <td class="p-4 text-center space-x-2 whitespace-nowrap">
+                        <button wire:click="edit({{ $event->id }})" class="text-blue-600 hover:text-blue-800 font-bold text-xs bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded border border-blue-200 transition shadow-sm">
+                            ⚙️ Edit
+                        </button>
+                        <button wire:click="delete({{ $event->id }})" wire:confirm="⚠️ Yakin ingin menghapus event ini? Semua data yang terkait mungkin akan ikut terhapus dan tidak dapat dikembalikan!" class="text-red-600 hover:text-red-800 font-bold text-xs bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded border border-red-200 transition shadow-sm">
+                            🗑️ Hapus
+                        </button>
                     </td>
                 </tr>
                 @empty
