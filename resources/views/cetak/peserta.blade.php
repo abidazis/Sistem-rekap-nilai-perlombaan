@@ -30,6 +30,7 @@
             .kop-container { border-bottom: 2px solid #000 !important; }
             .section-title { background: #e2e8f0 !important; -webkit-print-color-adjust: exact; }
             table.table-nilai th { background-color: #f8fafc !important; -webkit-print-color-adjust: exact; }
+            .total-juri-row { background-color: #fef08a !important; -webkit-print-color-adjust: exact; }
         }
     </style>
 </head>
@@ -161,6 +162,26 @@
                             <td colspan="{{ $juriKategoriIni->count() + 1 }}" class="text-left bold">PENGURANGAN POINT</td>
                             <td class="bold">(0)</td>
                         </tr>
+
+                        {{-- BARIS TOTAL PER JURI --}}
+                        @php
+                            $totalPerJuri = [];
+                            foreach($juriKategoriIni as $juri) {
+                                $totalPerJuri[$juri->id] = 0;
+                                foreach($kat->items as $item) {
+                                    $nilai = $peserta->nilai->where('item_penilaian_id', $item->id)->where('juri_id', $juri->id)->first();
+                                    $totalPerJuri[$juri->id] += $nilai ? $nilai->nilai : 0;
+                                }
+                            }
+                        @endphp
+                        <tr style="background: #fef08a; font-weight: bold;" class="total-juri-row">
+                            <td class="text-left">TOTAL PER JURI</td>
+                            @foreach($juriKategoriIni as $juri)
+                                <td style="font-size: 13px; color: #b91c1c;">{{ $totalPerJuri[$juri->id] }}</td>
+                            @endforeach
+                            <td style="font-size: 13px; color: #b91c1c;">{{ $grandTotalKategori }}</td>
+                        </tr>
+
                         <tr style="background: #f8fafc;">
                             <td colspan="{{ $juriKategoriIni->count() + 1 }}" class="text-left bold">TOTAL POINT</td>
                             <td class="bold">{{ $grandTotalKategori }}</td>
@@ -279,14 +300,34 @@
                                 <td colspan="{{ $juriKategoriIni->count() + 1 }}" class="text-left bold">PENGURANGAN POINT</td>
                                 <td class="bold">(0)</td>
                             </tr>
+
+                            {{-- BARIS TOTAL PER JURI (KATEGORI KHUSUS) --}}
+                            @php
+                                $totalPerJuri = [];
+                                foreach($juriKategoriIni as $juri) {
+                                    $totalPerJuri[$juri->id] = 0;
+                                    foreach($kat->items as $item) {
+                                        $nilai = $peserta->nilai->where('item_penilaian_id', $item->id)->where('juri_id', $juri->id)->first();
+                                        $totalPerJuri[$juri->id] += $nilai ? $nilai->nilai : 0;
+                                    }
+                                }
+                            @endphp
+                            <tr style="background: #fef08a; font-weight: bold;" class="total-juri-row">
+                                <td class="text-left">TOTAL PER JURI</td>
+                                @foreach($juriKategoriIni as $juri)
+                                    <td style="font-size: 13px; color: #b91c1c;">{{ $totalPerJuri[$juri->id] }}</td>
+                                @endforeach
+                                <td style="font-size: 13px; color: #b91c1c;">{{ $grandTotalKategori }}</td>
+                            </tr>
+
                             <tr style="background: #f8fafc;">
                                 <td colspan="{{ $juriKategoriIni->count() + 1 }}" class="text-left bold">TOTAL POINT</td>
                                 <td class="bold">{{ $grandTotalKategori }}</td>
                             </tr>
                         </tbody>
                     </table>
-                    
-                    @php 
+
+                    @php
                         if($kat->is_umum) { $totalUmumKotor += $grandTotalKategori; }
                     @endphp
                 @endif
