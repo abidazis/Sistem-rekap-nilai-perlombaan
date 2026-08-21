@@ -235,7 +235,7 @@ class CetakController extends Controller
             
             $p->total_minus = $p->denda->sum('poin_minus');
             $p->keterangan_denda = $p->denda->pluck('keterangan')->implode(', ');
-            $p->waktu_tampil = $p->durasi_tampil_detik ? gmdate("i:s", $p->durasi_tampil_detik) : '-';
+            $p->waktu_tampil = $p->durasi_format;
             
             $p->grand_total = $total_kotor - $p->total_minus;
             return $p;

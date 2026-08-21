@@ -88,7 +88,7 @@
                             <td style="border: none; text-align: center;">:</td>
                             <td style="border: none;">
                                 <div style="border: 3px inset #888; padding: 6px 12px; background-color: #fff; width: 100%; box-sizing: border-box;">
-                                    {{ $peserta->durasi_tampil_detik ? gmdate("i:s", $peserta->durasi_tampil_detik) : '00:00' }}
+                                    {{ $peserta->durasi_format }}
                                 </div>
                             </td>
                         </tr>

@@ -3,14 +3,16 @@
 namespace App\Livewire;
 
 use Livewire\Component;
-use App\Models\Peserta; 
-use App\Models\Lomba; 
-use App\Models\Juri; 
+use App\Models\Peserta;
+use App\Models\Lomba;
+use App\Models\Juri;
 use Illuminate\Support\Facades\DB;
 
 class AuditJuri extends Component
 {
     public $lomba_id;
+    public $tingkat_filter = '';
+    public $juri_filter = '';
 
     public function mount()
     {
@@ -23,22 +25,35 @@ class AuditJuri extends Component
     public function render()
     {
         $lombas = Lomba::all();
-        
+
         $pesertas = collect();
         $juris = collect();
         $statistikJuri = [];
 
         if ($this->lomba_id) {
-            $pesertas = Peserta::where('lomba_id', $this->lomba_id)->get();
+            // Query peserta dengan filter tingkat
+            $query = Peserta::where('lomba_id', $this->lomba_id);
+
+            if (!empty($this->tingkat_filter)) {
+                $query->where('tingkat', $this->tingkat_filter);
+            }
+
+            $pesertas = $query->get();
             $juris = Juri::where('lomba_id', $this->lomba_id)->get();
 
+            // Filter juris berdasarkan pilihan
+            $filteredJuris = $juris;
+            if (!empty($this->juri_filter)) {
+                $filteredJuris = $juris->where('id', $this->juri_filter);
+            }
+
             // 1. TAMBAHKAN 'posisi' KE DALAM STATISTIK
-            foreach ($juris as $juri) {
+            foreach ($filteredJuris as $juri) {
                 $namaJuri = $juri->nama ?? 'Juri';
-                
+
                 $statistikJuri[$juri->id] = [
                     'nama' => $namaJuri,
-                    'posisi' => $juri->posisi ?? 'Tugas Tidak Diketahui', // Ambil dari tabel juri
+                    'posisi' => $juri->posisi ?? 'Tugas Tidak Diketahui',
                     'total_akumulasi' => 0,
                     'rata_rata' => 0,
                     'jumlah_dinilai' => 0,
@@ -46,15 +61,15 @@ class AuditJuri extends Component
                 ];
             }
 
-            $pesertas = $pesertas->map(function ($peserta) use ($juris, &$statistikJuri) {
+            $pesertas = $pesertas->map(function ($peserta) use ($filteredJuris, &$statistikJuri) {
                 $totalKeseluruhan = 0;
                 $nilaiPerJuri = [];
 
-                foreach ($juris as $juri) {
+                foreach ($filteredJuris as $juri) {
                     $totalNilaiJuri = DB::table('nilai')
                                         ->where('peserta_id', $peserta->id)
                                         ->where('juri_id', $juri->id)
-                                        ->sum('nilai'); 
+                                        ->sum('nilai');
 
                     $nilaiPerJuri[$juri->id] = $totalNilaiJuri;
                     $totalKeseluruhan += $totalNilaiJuri;
@@ -71,7 +86,7 @@ class AuditJuri extends Component
                 return $peserta;
             });
 
-            $maxTotal = 1; 
+            $maxTotal = 1;
             foreach ($statistikJuri as $id => $stat) {
                 if ($stat['jumlah_dinilai'] > 0) {
                     $statistikJuri[$id]['rata_rata'] = round($stat['total_akumulasi'] / $stat['jumlah_dinilai'], 2);
@@ -92,7 +107,8 @@ class AuditJuri extends Component
             'lombas' => $lombas,
             'juris' => $juris,
             'pesertas' => $pesertas,
-            'statistikJuri' => $statistikJuri
-        ])->layout('layouts.app'); 
+            'statistikJuri' => $statistikJuri,
+            'filteredJuris' => $filteredJuris ?? collect()
+        ])->layout('layouts.app');
     }
 }

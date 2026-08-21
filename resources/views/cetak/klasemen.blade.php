@@ -60,7 +60,7 @@
                     <td>{{ number_format($total_kotor, 0, ',', '.') }}</td>
                     <td style="color: red;">{{ $p->total_minus > 0 ? $p->total_minus : '0' }}</td>
                     <td style="font-size: 10px;">{{ $p->keterangan_denda }}</td>
-                    <td>{{ gmdate("i.s", $p->durasi_tampil_detik) }}</td>
+                    <td>{{ $p->durasi_format }}</td>
                     <td class="bold">{{ number_format($p->total_skor, 0, ',', '.') }}</td>
                 </tr>
             @endforeach

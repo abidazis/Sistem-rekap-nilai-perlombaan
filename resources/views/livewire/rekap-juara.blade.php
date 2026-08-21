@@ -301,32 +301,15 @@
                             {{-- WAKTU --}}
                             <td class="p-4 text-center">
 
-                                @php
-
-                                    $durasi =
-                                        (int) (
-                                            $p->durasi_tampil_detik
-                                            ?? 0
-                                        );
-
-                                    $menit =
-                                        floor($durasi / 60);
-
-                                    $detik =
-                                        $durasi % 60;
-
-                                @endphp
-
-
-                                @if($durasi > 0)
+                                @if($p->durasi_tampil_detik > 0)
 
                                     <div
                                         class="font-black text-slate-700 bg-slate-100 rounded-md px-2 py-1 inline-block border border-slate-200 shadow-sm text-sm"
-                                        title="{{ $durasi }} Detik"
+                                        title="{{ $p->durasi_tampil_detik }} Detik"
                                     >
 
                                         ⏱️
-                                        {{ sprintf('%02d:%02d', $menit, $detik) }}
+                                        {{ $p->durasi_format }}
 
                                     </div>
 

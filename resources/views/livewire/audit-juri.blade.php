@@ -5,21 +5,37 @@
             <h2 class="text-2xl font-black text-slate-800 tracking-tight">🔍 AUDIT MATRIKS JURI</h2>
             <p class="text-sm text-slate-500">Analisis perbandingan total dan rata-rata nilai juri per event.</p>
         </div>
-        <div class="w-full md:w-1/3">
-            <select wire:model.live="lomba_id" class="w-full bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 font-bold">
+        <div class="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+            <!-- Filter Event -->
+            <select wire:model.live="lomba_id" class="bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 font-bold">
                 @foreach($lombas as $lomba)
                     <option value="{{ $lomba->id }}">{{ $lomba->nama_lomba ?? 'Event ' . $lomba->id }}</option>
+                @endforeach
+            </select>
+
+            <!-- Filter Tingkat -->
+            <select wire:model.live="tingkat_filter" class="bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 font-bold">
+                <option value="">Semua Tingkat</option>
+                <option value="SMP">SMP</option>
+                <option value="SMA">SMA</option>
+            </select>
+
+            <!-- Filter Juri -->
+            <select wire:model.live="juri_filter" class="bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 font-bold">
+                <option value="">Semua Juri</option>
+                @foreach($juris as $juri)
+                    <option value="{{ $juri->id }}">{{ $juri->nama ?? 'Juri' }} - {{ $juri->posisi ?? '' }}</option>
                 @endforeach
             </select>
         </div>
     </div>
 
     <!-- GRAFIK ANALISIS JURI DENGAN KONTEKS POSISI -->
-    @if(count($juris) > 0)
+    @if(count($filteredJuris) > 0)
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
         <h3 class="text-lg font-bold text-slate-800 mb-4 border-b pb-2">📊 Grafik Akumulasi Nilai Juri</h3>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            @foreach($statistikJuri as $stat)
+            @foreach($filteredJuris as $statKey => $stat)
             <div class="bg-slate-50 rounded-lg p-4 border border-slate-100 flex flex-col justify-between">
                 <div class="flex justify-between items-start mb-3">
                     <div class="flex flex-col">
@@ -56,7 +72,7 @@
                             Peserta / Sekolah
                         </th>
                         
-                        @forelse($juris as $juri)
+                        @forelse($filteredJuris as $juri)
                             <th class="p-4 text-center whitespace-nowrap border-l border-slate-700">
                                 <div class="font-bold text-sm">{{ $juri->nama ?? $juri->name }}</div>
                                 <!-- Munculkan posisi di header tabel -->
@@ -83,7 +99,7 @@
                             <span class="text-slate-400 font-normal mr-2">{{ $index + 1 }}.</span> {{ $peserta->nama_sekolah ?? 'Nama Tim' }}
                         </td>
                         
-                        @foreach($juris as $juri)
+                        @foreach($filteredJuris as $juri)
                             <td class="p-4 text-center font-medium text-slate-600 border-l border-slate-100">
                                 {{ $peserta->nilai_per_juri[$juri->id] ?? 0 }}
                             </td>
