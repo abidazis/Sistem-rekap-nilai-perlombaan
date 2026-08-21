@@ -9,11 +9,13 @@ return new class extends Migration
     public function up()
     {
         Schema::table('users', function (Blueprint $table) {
-            // Tambahkan kolom username dan role
-            $table->string('username')->unique()->nullable()->after('name');
-            $table->string('role')->default('juri')->after('password');
-            
-            // Opsional: Buat kolom email jadi nullable agar tidak wajib diisi ke depannya
+            if (!Schema::hasColumn('users', 'username')) {
+                $table->string('username')->unique()->nullable()->after('name');
+            }
+            if (!Schema::hasColumn('users', 'role')) {
+                $table->string('role')->default('juri')->after('password');
+            }
+            // Make email nullable only if it doesn't already allow nulls
             $table->string('email')->nullable()->change();
         });
     }
@@ -21,7 +23,12 @@ return new class extends Migration
     public function down()
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn(['username', 'role']);
+            if (Schema::hasColumn('users', 'username')) {
+                $table->dropColumn('username');
+            }
+            if (Schema::hasColumn('users', 'role')) {
+                $table->dropColumn('role');
+            }
         });
     }
 };

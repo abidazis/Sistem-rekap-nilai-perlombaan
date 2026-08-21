@@ -50,6 +50,10 @@
                             <option value="Juri PBB 3">Juri PBB 3</option>
                             <option value="Juri Variasi 1">Juri Variasi 1</option>
                             <option value="Juri Variasi 2">Juri Variasi 2</option>
+                            <!-- Tambahan opsi Juri Vafor (Variasi Formasi) -->
+                            <option value="Juri Vafor 1">Juri Vafor 1</option>
+                            <option value="Juri Vafor 2">Juri Vafor 2</option>
+                            
                             <option value="Juri Danton">Juri Danton</option>
                             <option value="Juri Kostum">Juri Kostum</option>
                             <option value="Admin Rekap">Admin Rekap (Timer)</option>

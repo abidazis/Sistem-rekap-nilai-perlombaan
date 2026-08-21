@@ -3,14 +3,14 @@
 namespace App\Livewire;
 
 use Livewire\Component;
-use Livewire\WithFileUploads; // 👈 1. INI WAJIB ADA DI ATAS
+use Livewire\WithFileUploads; 
 use App\Models\Lomba;
 use App\Models\Peserta;
 use Livewire\Attributes\Layout;
 
 class MasterPeserta extends Component
 {
-    use WithFileUploads; // 👈 2. DAN INI WAJIB ADA DI DALAM CLASS!
+    use WithFileUploads; 
 
     public $selected_lomba_id;
     
@@ -22,7 +22,7 @@ class MasterPeserta extends Component
     public $no_urut;
     public $nama_sekolah;
     public $nama_danton;
-    public $tingkat = 'SMP'; // 👈 DEFAULT TINGKAT
+    public $tingkat = '';
 
     public $is_create = false;
     public $is_edit = false;
@@ -38,12 +38,20 @@ class MasterPeserta extends Component
     #[Layout('layouts.app')]
     public function render()
     {
+        // 1. Buat query dasar berdasarkan event yang dipilih
+        $query = Peserta::where('lomba_id', $this->selected_lomba_id);
+        
+        // 2. Jika ada filter tingkat yang dipilih, terapkan ke query
+        if (!empty($this->tingkat)) {
+            $query->where('tingkat', $this->tingkat);
+        }
+
         return view('livewire.master-peserta', [
             'events' => Lomba::latest()->get(),
-            'pesertas' => Peserta::where('lomba_id', $this->selected_lomba_id)
-                                 ->orderBy('tingkat', 'asc') // Urutkan tingkat dulu
-                                 ->orderBy('no_urut', 'asc') // Baru urutkan nomornya
-                                 ->get()
+            // 3. LEMPAR VARIABEL $query (BUKAN PESERTA::WHERE LAGI) AGAR FILTERNYA JALAN!
+            'pesertas' => $query->orderBy('tingkat', 'asc') 
+                                ->orderBy('no_urut', 'asc') 
+                                ->get()
         ]);
     }
 
@@ -55,7 +63,7 @@ class MasterPeserta extends Component
         $this->validate([
             'selected_lomba_id' => 'required',
             'file_import_peserta' => 'required', 
-            'tingkat' => 'required', // 👈 Pastikan tingkat dipilih sebelum import
+            'tingkat' => 'required', 
         ], [
             'selected_lomba_id.required' => 'Pilih Event Lomba di atas dulu!',
             'file_import_peserta.required' => 'File belum siap! Tunggu tulisan loading hilang.',
@@ -88,7 +96,7 @@ class MasterPeserta extends Component
                             [
                                 'lomba_id' => $this->selected_lomba_id,
                                 'no_urut' => $no_urut, 
-                                'tingkat' => $this->tingkat, // 👈 Pisahkan validasi per tingkat
+                                'tingkat' => $this->tingkat, 
                             ],
                             [
                                 'nama_sekolah' => strtoupper($nama_sekolah),
@@ -108,7 +116,7 @@ class MasterPeserta extends Component
     }
 
     // ==========================================
-    // FITUR CRUD MANUAL (Jaga-jaga kalau ada peserta nyusul)
+    // FITUR CRUD MANUAL 
     // ==========================================
     public function create()
     {
@@ -133,7 +141,7 @@ class MasterPeserta extends Component
             'no_urut' => $this->no_urut,
             'nama_sekolah' => strtoupper($this->nama_sekolah),
             'nama_danton' => strtoupper($this->nama_danton),
-            'tingkat' => $this->tingkat // 👈 SUNTIKAN TINGKAT
+            'tingkat' => $this->tingkat 
         ]);
 
         session()->flash('message', 'Peserta berhasil ditambahkan!');
@@ -147,7 +155,7 @@ class MasterPeserta extends Component
         $this->no_urut = $peserta->no_urut;
         $this->nama_sekolah = $peserta->nama_sekolah;
         $this->nama_danton = $peserta->nama_danton;
-        $this->tingkat = $peserta->tingkat ?? 'SMP'; // 👈 TARIK DATA TINGKAT
+        $this->tingkat = $peserta->tingkat ?? 'SMP'; 
 
         $this->is_create = true;
         $this->is_edit = true;
@@ -165,7 +173,7 @@ class MasterPeserta extends Component
             'no_urut' => $this->no_urut,
             'nama_sekolah' => strtoupper($this->nama_sekolah),
             'nama_danton' => strtoupper($this->nama_danton),
-            'tingkat' => $this->tingkat // 👈 UPDATE DATA TINGKAT
+            'tingkat' => $this->tingkat 
         ]);
 
         session()->flash('message', 'Peserta berhasil diupdate!');
@@ -191,6 +199,6 @@ class MasterPeserta extends Component
         $this->no_urut = '';
         $this->nama_sekolah = '';
         $this->nama_danton = '';
-        $this->tingkat = 'SMP'; // 👈 KEMBALIKAN KE DEFAULT
+        $this->tingkat = '';
     }
 }

@@ -105,11 +105,18 @@
                 $itemIds = $kat->items->pluck('id');
                 $cekNilaiKategori = $peserta->nilai->whereIn('item_penilaian_id', $itemIds)->sum('nilai');
 
-                // FILTER SAKTI: Hanya ambil Juri yang punya kontribusi nilai > 0 di kategori ini
-                $juriKategoriIni = $juris->filter(function($j) use ($peserta, $itemIds) {
-                    return $peserta->nilai->where('juri_id', $j->id)
-                                          ->whereIn('item_penilaian_id', $itemIds)
-                                          ->sum('nilai') > 0;
+                // FILTER SAKTI REVISI: Pastikan Juri Bena-Benar Ditugaskan di Kategori Ini
+                $juriKategoriIni = $juris->filter(function($j) use ($kat, $peserta, $itemIds) {
+                    $tugas_kategori = is_array($j->kategori_ids) ? $j->kategori_ids : json_decode($j->kategori_ids, true);
+                    $tugas_kategori = is_array($tugas_kategori) ? $tugas_kategori : [];
+                    
+                    $is_assigned = in_array($kat->id, $tugas_kategori);
+                    
+                    $has_score = $peserta->nilai->where('juri_id', $j->id)
+                                                ->whereIn('item_penilaian_id', $itemIds)
+                                                ->sum('nilai') > 0;
+                                                
+                    return $is_assigned && $has_score;
                 });
             @endphp
 
@@ -120,8 +127,7 @@
                         <tr>
                             <th class="text-left" style="width: 45%">NAMA GERAKAN</th>
                             @foreach($juriKategoriIni as $juri)
-                                @php $nomorAsliJuri = $juris->search($juri) + 1; @endphp
-                                <th>JURI {{ $nomorAsliJuri }}</th>
+                                <th>{{ strtoupper($juri->posisi) }}</th>
                             @endforeach
                             <th style="width: 15%">NILAI</th>
                         </tr>
@@ -185,8 +191,17 @@
             </tr>
             <tr>
                 <td style="text-align: left; font-size: 14px;">PENGURANGAN</td>
-                <td style="font-size: 16px;">{{ number_format($totalMinus, 0, ',', '.') }}</td>
-                <td></td>
+                <td style="font-size: 16px; color: #dc2626;">{{ number_format($totalMinus, 0, ',', '.') }}</td>
+                <td style="font-size: 10px; text-align: left; font-style: italic; color: #dc2626; padding-left: 10px; line-height: 1.3;">
+                    @if($peserta->denda->count() > 0)
+                        *Ket: 
+                        @foreach($peserta->denda as $d)
+                            {{ strtoupper($d->keterangan) }} (-{{ $d->poin_minus }}){{ !$loop->last ? ', ' : '' }}
+                        @endforeach
+                    @else
+                        -
+                    @endif
+                </td>
             </tr>
         </table>
     @endif
@@ -208,11 +223,18 @@
                     $itemIds = $kat->items->pluck('id');
                     $cekNilaiKategori = $peserta->nilai->whereIn('item_penilaian_id', $itemIds)->sum('nilai');
 
-                    // FILTER SAKTI JURI KHUSUS
-                    $juriKategoriIni = $juris->filter(function($j) use ($peserta, $itemIds) {
-                        return $peserta->nilai->where('juri_id', $j->id)
-                                              ->whereIn('item_penilaian_id', $itemIds)
-                                              ->sum('nilai') > 0;
+                    // FILTER SAKTI REVISI: Khusus
+                    $juriKategoriIni = $juris->filter(function($j) use ($kat, $peserta, $itemIds) {
+                        $tugas_kategori = is_array($j->kategori_ids) ? $j->kategori_ids : json_decode($j->kategori_ids, true);
+                        $tugas_kategori = is_array($tugas_kategori) ? $tugas_kategori : [];
+                        
+                        $is_assigned = in_array($kat->id, $tugas_kategori);
+                        
+                        $has_score = $peserta->nilai->where('juri_id', $j->id)
+                                                    ->whereIn('item_penilaian_id', $itemIds)
+                                                    ->sum('nilai') > 0;
+                                                    
+                        return $is_assigned && $has_score;
                     });
                 @endphp
 
@@ -223,8 +245,7 @@
                             <tr>
                                 <th class="text-left" style="width: 45%">NAMA GERAKAN</th>
                                 @foreach($juriKategoriIni as $juri)
-                                    @php $nomorAsliJuri = $juris->search($juri) + 1; @endphp
-                                    <th>JURI {{ $nomorAsliJuri }}</th>
+                                    <th>{{ strtoupper($juri->posisi) }}</th>
                                 @endforeach
                                 <th style="width: 15%">NILAI</th>
                             </tr>

@@ -51,6 +51,7 @@ return new class extends Migration
             $table->foreignId('lomba_id')->constrained('lomba')->onDelete('cascade');
             $table->string('nama_kategori'); // PBB, VARIASI, DANTON
             $table->decimal('bobot_persen', 5, 2); // 70.00
+            $table->boolean('is_umum')->default(0);
             $table->timestamps();
         });
 

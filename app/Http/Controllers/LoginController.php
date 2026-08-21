@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 
 class LoginController extends Controller
 {
@@ -14,21 +16,19 @@ class LoginController extends Controller
 
     public function authenticate(Request $request)
     {
-        $credentials = $request->validate([
+        $request->validate([
             'username' => ['required'],
             'password' => ['required'],
         ]);
 
-        // Karena config/auth.php antum sudah diarahkan ke tabel Juri,
-        // Auth::attempt akan otomatis ngecek username & password ke tabel juri!
-        if (Auth::attempt($credentials)) {
+        $user = User::where('username', $request->username)->first();
+
+        if ($user && Hash::check($request->password, $user->password)) {
+            Auth::login($user);
             $request->session()->regenerate();
-            
-            // Redirect aman ke dashboard
             return redirect()->intended('/');
         }
 
-        // Kalau password salah, balikin ke halaman login bawa pesan error
         return back()->withErrors([
             'username' => '⚠️ Username atau Password antum salah bro!',
         ])->onlyInput('username');
@@ -39,7 +39,7 @@ class LoginController extends Controller
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-        
+
         return redirect('/login');
     }
 }

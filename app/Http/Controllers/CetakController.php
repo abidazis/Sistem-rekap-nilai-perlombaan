@@ -7,34 +7,57 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\Lomba;
 use App\Models\Peserta;
 use App\Models\KategoriPenilaian;
-
+use App\Models\Juri;
 
 class CetakController extends Controller
 {
+    // =========================================================================
+    // 🔥 FILTER SAKTI (HELPER): Memastikan nilai hanya dihitung dari juri yang berhak
+    // =========================================================================
+    private function applyFilterJuri($pesertas, $kategoris, $lomba_id) {
+        $juris = Juri::where('lomba_id', $lomba_id)->get();
+
+        return $pesertas->map(function($p) use ($kategoris, $juris) {
+            $skor_valid = [];
+            foreach($kategoris as $kat) {
+                // Cari Juri mana saja yang ditugaskan di kategori ini
+                $juri_berhak = $juris->filter(function($j) use ($kat) {
+                    $tugas = is_array($j->kategori_ids) ? $j->kategori_ids : json_decode($j->kategori_ids, true);
+                    return in_array($kat->id, $tugas ?? []);
+                })->pluck('id')->toArray();
+
+                // Hitung nilai HANYA dari juri-juri yang berhak tersebut
+                $skor_valid[$kat->id] = $p->nilai
+                    ->whereIn('item_penilaian_id', $kat->items->pluck('id'))
+                    ->whereIn('juri_id', $juri_berhak)
+                    ->sum('nilai');
+            }
+            // Simpan ke variabel penampung sementara yang suci dari nilai nyasar
+            $p->skor_kategori_valid = $skor_valid;
+            return $p;
+        });
+    }
+
     // Fungsi 1: Cetak Seluruh Klasemen Lomba
     public function cetakKlasemen($lomba_id)
     {
         $lomba = Lomba::findOrFail($lomba_id);
         $kategoris = KategoriPenilaian::where('lomba_id', $lomba_id)->with('items')->get();
+        
         $all_peserta = Peserta::where('lomba_id', $lomba_id)->with(['nilai', 'denda'])->get();
+        $all_peserta = $this->applyFilterJuri($all_peserta, $kategoris, $lomba_id); // Terapkan Filter
         
         $ranking = $all_peserta->map(function($p) use ($kategoris) {
             $total_nilai_murni = 0;
-            
-            // 1. GUNAKAN ARRAY SEMENTARA DI SINI
             $temp_skor_kategori = []; 
             
             foreach($kategoris as $kat) {
-                $item_ids = $kat->items->pluck('id');
-                // Nilai murni kotor
-                $raw_score = $p->nilai->whereIn('item_penilaian_id', $item_ids)->sum('nilai');
+                $raw_score = $p->skor_kategori_valid[$kat->id]; // Ambil nilai yang sudah difilter
                 
-                // 2. MASUKKAN KE WADAH SEMENTARA
                 $temp_skor_kategori[$kat->id] = $raw_score; 
                 $total_nilai_murni += $raw_score;
             }
             
-            // 3. BARU TIMPA KE PROPERTI MODELNYA
             $p->skor_kategori = $temp_skor_kategori; 
             
             $p->total_minus = $p->denda->sum('poin_minus');
@@ -60,39 +83,34 @@ class CetakController extends Controller
     public function cetakUtama(Request $request, $lomba_id)
     {
         $lomba = Lomba::findOrFail($lomba_id);
-        
-        // Ambil array ID kategori yang dicentang oleh user
         $selected_kategori_ids = $request->input('kategori', []); 
 
         if(empty($selected_kategori_ids)) {
             return "<script>alert('Pilih minimal 1 kategori bro!'); window.close();</script>";
         }
 
-        // Hanya ambil kategori yang dipilih
-        $kategoris = KategoriPenilaian::whereIn('id', $selected_kategori_ids)->with('items')->get();
+        $kategoris_all = KategoriPenilaian::where('lomba_id', $lomba_id)->with('items')->get();
+        $kategoris = $kategoris_all->whereIn('id', $selected_kategori_ids); // Kategori yg dipilih saja
+        
         $all_peserta = Peserta::where('lomba_id', $lomba_id)->with(['nilai', 'denda'])->get();
+        $all_peserta = $this->applyFilterJuri($all_peserta, $kategoris_all, $lomba_id); // Terapkan Filter
         
         $ranking = $all_peserta->map(function($p) use ($kategoris) {
             $total_nilai_utama = 0;
             
-            // Hitung nilai HANYA dari kategori yang dipilih
             foreach($kategoris as $kat) {
-                $item_ids = $kat->items->pluck('id');
-                $raw_score = $p->nilai->whereIn('item_penilaian_id', $item_ids)->sum('nilai');
-                $total_nilai_utama += $raw_score;
+                $total_nilai_utama += $p->skor_kategori_valid[$kat->id]; // Ambil nilai yang sudah difilter
             }
             
             $p->total_minus = $p->denda->sum('poin_minus');
             $p->keterangan_denda = $p->denda->pluck('keterangan')->implode(', '); 
             
-            // Perhitungan akhir sesuai format Pandawa
             $p->total_kotor = $total_nilai_utama;
             $p->grand_total = $total_nilai_utama - $p->total_minus;
             
             return $p;
         })->sortByDesc('grand_total')->values();
 
-        // Buat string nama kategori yang dipilih untuk dicetak di kertas
         $nama_kategori_dipilih = $kategoris->pluck('nama_kategori')->implode(' + ');
 
         return view('cetak.utama', compact('lomba', 'ranking', 'nama_kategori_dipilih'));
@@ -102,53 +120,35 @@ class CetakController extends Controller
     public function cetakKategori($lomba_id, $tingkat)
     {
         $lomba = \App\Models\Lomba::findOrFail($lomba_id);
-        
-        // Eager load items agar tidak N+1 query
         $kategoris = \App\Models\KategoriPenilaian::with('items')->where('lomba_id', $lomba_id)->get();
         
-        // Ambil peserta khusus tingkat yang dipilih saja
         $pesertas = \App\Models\Peserta::where('lomba_id', $lomba_id)
                                        ->where('tingkat', $tingkat)
                                        ->with('nilai')
                                        ->get();
+                                       
+        $pesertas = $this->applyFilterJuri($pesertas, $kategoris, $lomba_id); // Terapkan Filter
 
         $ranking_per_kategori = [];
-
-        // 1. CARI KATEGORI PBB UNTUK TIE-BREAKER
-        // Kita cari kategori yang namanya mengandung kata "PBB"
         $kategoriPBB = $kategoris->filter(function($k) {
             return str_contains(strtolower($k->nama_kategori), 'pbb');
         })->first();
-        
-        // Ambil ID item-item PBB, ubah ke array agar aman untuk whereIn
-        $item_ids_pbb = $kategoriPBB ? $kategoriPBB->items->pluck('id')->toArray() : [];
 
         foreach ($kategoris as $kat) {
-            $item_ids = $kat->items->pluck('id')->toArray();
-            
-            $ranked = $pesertas->map(function($p) use ($item_ids, $item_ids_pbb) {
-                // WAJIB CLONE: Agar skor kategori satu tidak menimpa skor kategori lain di memori
+            $ranked = $pesertas->map(function($p) use ($kat, $kategoriPBB) {
                 $pesertaClone = clone $p; 
                 
-                // Hitung Nilai Murni Kategori yang sedang dilooping
-                $pesertaClone->skor_kategori = $p->nilai->whereIn('item_penilaian_id', $item_ids)->sum('nilai');
-                
-                // Hitung Nilai PBB khusus untuk Tie-Breaker
-                $pesertaClone->skor_pbb = $p->nilai->whereIn('item_penilaian_id', $item_ids_pbb)->sum('nilai');
+                // Ambil nilai yang sudah difilter
+                $pesertaClone->skor_kategori = $p->skor_kategori_valid[$kat->id];
+                $pesertaClone->skor_pbb = $kategoriPBB ? $p->skor_kategori_valid[$kategoriPBB->id] : 0;
                 
                 return $pesertaClone;
             })->sort(function($a, $b) {
-                // 2. LOGIKA SAKTI MULTI-LEVEL SORTING
-                
-                // Lapis Pertama: Bandingkan Nilai Murni Kategori
                 if ($a->skor_kategori != $b->skor_kategori) {
-                    return $b->skor_kategori <=> $a->skor_kategori; // Descending (Besar ke kecil)
+                    return $b->skor_kategori <=> $a->skor_kategori; 
                 }
-                
-                // Lapis Kedua (JIKA SERI MUTLAK): Adu Nilai PBB!
-                return $b->skor_pbb <=> $a->skor_pbb; // Descending
-                
-            })->values(); // Reset array keys agar urutan rank 0,1,2 berurutan sempurna
+                return $b->skor_pbb <=> $a->skor_pbb; 
+            })->values(); 
 
             $ranking_per_kategori[$kat->id] = $ranked;
         }
@@ -164,8 +164,6 @@ class CetakController extends Controller
     public function cetakLJK($lomba_id)
     {
         $lomba = Lomba::findOrFail($lomba_id);
-        
-        // Improvisasi: Urutkan item gerakan berdasarkan kolom 'urutan' secara ascending (A-Z)
         $kategoris = KategoriPenilaian::where('lomba_id', $lomba_id)
             ->with(['items' => function($query) {
                 $query->orderBy('urutan', 'asc');
@@ -178,24 +176,22 @@ class CetakController extends Controller
     // SUNTIKAN FUNGSI PENENTU PREDIKAT KLASIK PASKIBRA
     private function getPredikatJuara($rank, $format = 'all_harapan') {
         $tingkat = ['UTAMA', 'MADYA', 'BINA', 'MULA', 'PURWA', 'CARAKA', 'POTENSIAL', 'PERINTIS', 'PEJUANG'];
-        $rank--; // Jadikan index 0 (0 = Juara 1)
+        $rank--; 
 
         if ($format == 'all_harapan') {
-            // Format All Trophy: UTAMA 123, Harapan UTAMA 123, MADYA 123, Harapan MADYA 123, dst.
             $idxTingkat = floor($rank / 6);
             if ($idxTingkat >= count($tingkat)) return "FINALIS " . ($rank + 1);
 
-            $posisi = $rank % 6; // 0,1,2 (Juara) - 3,4,5 (Harapan)
+            $posisi = $rank % 6; 
             $nama = $tingkat[$idxTingkat];
 
             if ($posisi < 3) return $nama . " " . ($posisi + 1);
             return "HARAPAN " . $nama . " " . ($posisi - 2);
         } else {
-            // Format Standard: Utama 123, Harapan Utama 123, lalu Madya 123, Bina 123 (tanpa harapan di bawah)
             if ($rank < 3) return "UTAMA " . ($rank + 1);
             if ($rank < 6) return "HARAPAN UTAMA " . ($rank - 2);
 
-            $idxTingkat = floor(($rank - 6) / 3) + 1; // index 1 = MADYA
+            $idxTingkat = floor(($rank - 6) / 3) + 1; 
             if ($idxTingkat >= count($tingkat)) return "FINALIS " . ($rank + 1);
 
             $posisi = ($rank % 3) + 1;
@@ -203,13 +199,13 @@ class CetakController extends Controller
         }
     }
 
+    // Fungsi 6: Cetak Pengumuman Excel Utama
     public function cetakPengumumanExcel($lomba_id, $tingkat)
     {
         $lomba = \App\Models\Lomba::findOrFail($lomba_id);
         $kategoris = \App\Models\KategoriPenilaian::where('lomba_id', $lomba_id)->get();
         $tieBreakers = is_array($lomba->tie_breakers) ? $lomba->tie_breakers : [];
         
-        // Setup Kategori Spesifik (PBB & Komandan)
         $kategoriPbbId = null;
         $kategoriKomandanId = null;
         foreach($kategoris as $k) {
@@ -220,6 +216,8 @@ class CetakController extends Controller
         $all_peserta = \App\Models\Peserta::where('lomba_id', $lomba_id)
                         ->where('tingkat', $tingkat)
                         ->with('nilai', 'denda')->get();
+                        
+        $all_peserta = $this->applyFilterJuri($all_peserta, $kategoris, $lomba_id); // Terapkan Filter
 
         // 1. KLASEMEN UTAMA & PENENTUAN PREDIKAT (KUOTA JUARA)
         $urutan_juara = is_array($lomba->urutan_juara) ? $lomba->urutan_juara : [];
@@ -228,7 +226,7 @@ class CetakController extends Controller
         $pesertaGrandTotal = $all_peserta->map(function($p) use ($kategoris) {
             $total_kotor = 0; $skor_kategori = [];
             foreach($kategoris as $kat) {
-                $skor = $p->nilai->whereIn('item_penilaian_id', $kat->items->pluck('id'))->sum('nilai');
+                $skor = $p->skor_kategori_valid[$kat->id]; // Ambil nilai yang sudah difilter
                 $skor_kategori[$kat->id] = $skor;
                 if ($kat->is_utama) $total_kotor += $skor;
             }
@@ -237,7 +235,6 @@ class CetakController extends Controller
             
             $p->total_minus = $p->denda->sum('poin_minus');
             $p->keterangan_denda = $p->denda->pluck('keterangan')->implode(', ');
-            // Ubah detik ke format Menit:Detik (MM:SS)
             $p->waktu_tampil = $p->durasi_tampil_detik ? gmdate("i:s", $p->durasi_tampil_detik) : '-';
             
             $p->grand_total = $total_kotor - $p->total_minus;
@@ -250,10 +247,8 @@ class CetakController extends Controller
             }
             return 0; 
         })->values()->map(function($p, $idx) use ($urutan_juara, $kuota) {
-            // LOGIKA PENYEMATAN LABEL PREDIKAT JUARA
             $rank = $idx + 1;
             if ($kuota == 0 || $rank <= $kuota) {
-                // Ambil dari inputan text Master Event, jika habis/kosong pakai default
                 $p->predikat_juara = $urutan_juara[$idx] ?? "Peringkat Ke-" . $rank;
             } else {
                 $p->predikat_juara = "Peringkat Ke-" . $rank;
@@ -266,12 +261,13 @@ class CetakController extends Controller
         foreach($kategoris as $kat) {
             if ($kat->is_tersendiri) continue; 
             
-            $sortedList = $all_peserta->map(function($p) use ($kat, $kategoris, $kategoriPbbId, $kategoriKomandanId) {
+            $sortedList = $all_peserta->map(function($p) use ($kat, $kategoriPbbId, $kategoriKomandanId) {
                 $p_clone = clone $p;
-                $p_clone->skor_spesifik = $p->nilai->whereIn('item_penilaian_id', $kat->items->pluck('id'))->sum('nilai');
                 
-                $p_clone->skor_pbb = $kategoriPbbId ? $p->nilai->whereIn('item_penilaian_id', $kategoris->where('id', $kategoriPbbId)->first()->items->pluck('id'))->sum('nilai') : 0;
-                $p_clone->skor_komandan = $kategoriKomandanId ? $p->nilai->whereIn('item_penilaian_id', $kategoris->where('id', $kategoriKomandanId)->first()->items->pluck('id'))->sum('nilai') : 0;
+                // Ambil nilai yang sudah difilter
+                $p_clone->skor_spesifik = $p->skor_kategori_valid[$kat->id];
+                $p_clone->skor_pbb = $kategoriPbbId ? $p->skor_kategori_valid[$kategoriPbbId] : 0;
+                $p_clone->skor_komandan = $kategoriKomandanId ? $p->skor_kategori_valid[$kategoriKomandanId] : 0;
                 
                 return $p_clone;
             })->sortByDesc('skor_spesifik')->values();
@@ -287,7 +283,7 @@ class CetakController extends Controller
         $pesertaUmum = $all_peserta->map(function($p) use ($kategoris) {
             $total_umum = 0;
             foreach($kategoris as $kat) {
-                if ($kat->is_umum) $total_umum += $p->nilai->whereIn('item_penilaian_id', $kat->items->pluck('id'))->sum('nilai');
+                if ($kat->is_umum) $total_umum += $p->skor_kategori_valid[$kat->id]; // Nilai suci
             }
             $p_clone = clone $p; 
             $p_clone->skor_umum = $total_umum; 
@@ -310,6 +306,7 @@ class CetakController extends Controller
         return view('cetak.pengumuman-excel', compact('lomba', 'tingkat', 'pesertaGrandTotal', 'rankingKategori', 'pesertaUmum', 'juaraSpesials'));
     }
 
+    // Fungsi 7: Export Lembar Pengumuman MC
     public function exportPengumuman($lomba_id, $tingkat)
     {
         $lomba = \App\Models\Lomba::findOrFail($lomba_id);
@@ -319,12 +316,14 @@ class CetakController extends Controller
         $all_peserta = \App\Models\Peserta::where('lomba_id', $lomba_id)
                         ->where('tingkat', $tingkat)
                         ->with('nilai', 'denda')->get();
+                        
+        $all_peserta = $this->applyFilterJuri($all_peserta, $kategoris, $lomba_id); // Terapkan Filter
 
         // 1. HITUNG KLASEMEN GRAND TOTAL
         $pesertaGrandTotal = $all_peserta->map(function($p) use ($kategoris) {
             $total_kotor = 0; $skor_kategori = [];
             foreach($kategoris as $kat) {
-                $skor = $p->nilai->whereIn('item_penilaian_id', $kat->items->pluck('id'))->sum('nilai');
+                $skor = $p->skor_kategori_valid[$kat->id]; // Nilai suci
                 $skor_kategori[$kat->id] = $skor;
                 if ($kat->is_utama) $total_kotor += $skor;
             }
@@ -341,7 +340,6 @@ class CetakController extends Controller
             return 0; 
         })->values();
 
-        // Labeli Predikat
         $format = $lomba->format_juara ?? 'all_harapan';
         $pesertaGrandTotal = $pesertaGrandTotal->map(function($p, $idx) use ($format) {
             $urutan = $idx + 1;
@@ -358,10 +356,10 @@ class CetakController extends Controller
         // 2. HITUNG JUARA PER KATEGORI 
         $rankingKategori = [];
         foreach($kategoris as $kat) {
-            if ($kat->is_tersendiri) continue; // Skip Kategori Tersendiri di sini
+            if ($kat->is_tersendiri) continue; 
             $rankingKategori[$kat->nama_kategori] = $all_peserta->map(function($p) use ($kat) {
                 $p_clone = clone $p;
-                $p_clone->skor_spesifik = $p->nilai->whereIn('item_penilaian_id', $kat->items->pluck('id'))->sum('nilai');
+                $p_clone->skor_spesifik = $p->skor_kategori_valid[$kat->id]; // Nilai suci
                 return $p_clone;
             })->sortByDesc('skor_spesifik')->values()->take(3);
         }
@@ -370,12 +368,12 @@ class CetakController extends Controller
         $pesertaUmum = $all_peserta->map(function($p) use ($kategoris) {
             $total_umum = 0;
             foreach($kategoris as $kat) {
-                if ($kat->is_umum) $total_umum += $p->nilai->whereIn('item_penilaian_id', $kat->items->pluck('id'))->sum('nilai');
+                if ($kat->is_umum) $total_umum += $p->skor_kategori_valid[$kat->id]; // Nilai suci
             }
             $p_clone = clone $p; $p_clone->skor_umum = $total_umum; return $p_clone;
         })->sortByDesc('skor_umum')->values()->take(3);
 
-        // 4. AMBIL JUARA SPESIAL (JALUR MANUAL)
+        // 4. AMBIL JUARA SPESIAL
         $kategoriSpesials = \App\Models\KategoriPenilaian::where('lomba_id', $lomba_id)->where('is_tersendiri', true)->get();
         $juaraSpesials = [];
         foreach ($kategoriSpesials as $ks) {
@@ -391,12 +389,15 @@ class CetakController extends Controller
         return view('cetak.pengumuman-excel', compact('lomba', 'tingkat', 'pesertaGrandTotal', 'rankingKategori', 'pesertaUmum', 'juaraSpesials'));
     }
 
+    // Fungsi 8: Cetak PDF
     public function cetakPengumumanPDF($lomba_id, $tingkat)
     {
         $lomba = \App\Models\Lomba::findOrFail($lomba_id);
         $kategoris = \App\Models\KategoriPenilaian::where('lomba_id', $lomba_id)->get();
         $pesertas = \App\Models\Peserta::where('lomba_id', $lomba_id)
                     ->where('tingkat', $tingkat)->with('nilai', 'denda')->get();
+                    
+        $pesertas = $this->applyFilterJuri($pesertas, $kategoris, $lomba_id); // Terapkan Filter
 
         // 1. TIE BREAKER
         $tieBreakersAktif = is_array($lomba->tie_breakers) ? array_map('intval', array_filter($lomba->tie_breakers)) : [];
@@ -410,7 +411,7 @@ class CetakController extends Controller
         $ranked = $pesertas->map(function($p) use ($kategoris) {
             $total_kotor = 0; $skor_kat = [];
             foreach($kategoris as $kat) {
-                $s = $p->nilai->whereIn('item_penilaian_id', $kat->items->pluck('id'))->sum('nilai');
+                $s = $p->skor_kategori_valid[$kat->id]; // Nilai suci
                 $skor_kat[$kat->id] = $s;
                 if($kat->is_utama) $total_kotor += $s;
             }
@@ -444,7 +445,7 @@ class CetakController extends Controller
         // 4. BEST KATEGORI
         $bestCategories = [];
         foreach($kategoris as $kat) {
-            if ($kat->is_tersendiri) continue; // Skip Kategori Tersendiri di sini
+            if ($kat->is_tersendiri) continue; 
             $sorted = $ranked->map(function($p) use ($kat) {
                 $p_kat = clone $p; $p_kat->skor_spesifik = $p->skor_kategori[$kat->id] ?? 0; return $p_kat;
             })->sort(function($a, $b) use ($tieBreakersAktif, $kat) {
@@ -468,12 +469,8 @@ class CetakController extends Controller
             if ($winners->count() > 0) $juaraSpesials[] = ['kategori' => $ks, 'pemenang' => $winners];
         }
 
-        // =========================================================================
-        // ✅ PERBAIKAN: AMBIL DATA JURI DI SINI (SEBELUM RETURN PDF)
-        // =========================================================================
         $juris = \App\Models\Juri::where('lomba_id', $lomba_id)->get();
 
-        // Tambahkan 'juris' ke dalam susunan compact() di bawah ini
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('cetak.pengumuman-pdf', compact(
             'lomba', 
             'tingkat', 
@@ -482,12 +479,11 @@ class CetakController extends Controller
             'bestCategories', 
             'tb_kategoris', 
             'juaraSpesials',
-            'juris' // <--- Pastikan ini ikut dikirim ke PDF bro!
+            'juris' 
         ));
 
         $pdf->setPaper('A4', 'portrait'); 
         
-        // Fungsi akan berhenti di sini dan mengirimkan file stream PDF dengan data juri lengkap
         return $pdf->stream("PENGUMUMAN_JUARA_".strtoupper($tingkat).".pdf");
     }
 }

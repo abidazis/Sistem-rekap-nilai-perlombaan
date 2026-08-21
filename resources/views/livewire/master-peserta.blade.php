@@ -19,6 +19,7 @@
                     <div>
                         <label class="block text-slate-300 text-[11px] mb-1">1. Tingkat</label>
                         <select wire:model.live="tingkat" class="w-full bg-slate-700 text-white text-xs border border-slate-600 rounded-md p-2 font-bold focus:ring-2 focus:ring-blue-500">
+                            <option value="">-- TAMPILKAN SEMUA TINGKAT --</option>
                             <option value="SD">SD / MI Sederajat</option>
                             <option value="SMP">SMP / MTs Sederajat</option>
                             <option value="SMA">SMA / SMK / MA Sederajat</option>
@@ -87,6 +88,7 @@
                     <div class="md:col-span-3">
                         <label class="block text-sm font-bold mb-2 text-gray-600">Tingkat Sekolah</label>
                         <select wire:model.live="tingkat" class="w-full border border-gray-300 p-3 rounded-md font-bold text-gray-700 bg-white focus:ring-2 focus:ring-blue-500">
+                            <option value="">-- PILIH TINGKAT --</option>
                             <option value="SD">SD / MI Sederajat</option>
                             <option value="SMP">SMP / MTs Sederajat</option>
                             <option value="SMA">SMA / SMK / MA Sederajat</option>
@@ -111,6 +113,13 @@
     <div class="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
         <table class="w-full text-left">
             <thead class="bg-gray-100 text-gray-600 uppercase text-xs font-bold tracking-wider">
+                @if($tingkat)
+                <tr>
+                    <th colspan="6" class="p-3 border-b text-center bg-blue-100 text-blue-800 font-black tracking-widest uppercase">
+                        MENAMPILKAN KHUSUS DATA PESERTA TINGKAT: {{ $tingkat }}
+                    </th>
+                </tr>
+                @endif
                 <tr>
                     <th class="p-4 border-b text-center w-20">No. Urut</th>
                     <th class="p-4 border-b">Nama Sekolah</th>
