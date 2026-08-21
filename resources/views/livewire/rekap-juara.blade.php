@@ -181,6 +181,34 @@
                         @endforeach
 
 
+                        {{-- KOLOM TIEBREAKER (TIDAK UNTUK UTAMA) --}}
+                        @if($mode_tampilan !== 'utama')
+                            @php
+                                // Cek apakah kategori yang sedang dilihat adalah PBB
+                                $isPbb = false;
+                                if (is_numeric($mode_tampilan) && $kategori_pbb) {
+                                    $isPbb = ($mode_tampilan == $kategori_pbb->id);
+                                }
+                            @endphp
+
+                            @if($isPbb)
+                                {{-- Jika lihat PBB, tiebreaker adalah KOMANDAN --}}
+                                @if($kategori_komandan)
+                                    <th class="p-4 text-center text-purple-400 border-l border-slate-700 bg-slate-800 text-xs">
+                                        KOMANDAN ⬆️
+                                    </th>
+                                @endif
+                            @else
+                                {{-- Jika lihat kategori lain, tiebreaker adalah PBB --}}
+                                @if($kategori_pbb)
+                                    <th class="p-4 text-center text-green-400 border-l border-slate-700 bg-slate-800 text-xs">
+                                        PBB ⬆️
+                                    </th>
+                                @endif
+                            @endif
+                        @endif
+
+
                         @if(
                             $mode_tampilan === 'utama' ||
                             $mode_tampilan === 'umum'
@@ -356,6 +384,32 @@
                                 </td>
 
                             @endforeach
+
+                            {{-- KOLOM TIEBREAKER (TIDAK UNTUK UTAMA) --}}
+                            @if($mode_tampilan !== 'utama')
+                                @php
+                                    $isPbb = false;
+                                    if (is_numeric($mode_tampilan) && $kategori_pbb) {
+                                        $isPbb = ($mode_tampilan == $kategori_pbb->id);
+                                    }
+                                @endphp
+
+                                @if($isPbb)
+                                    {{-- Jika lihat PBB, tiebreaker adalah KOMANDAN --}}
+                                    @if($kategori_komandan)
+                                        <td class="p-4 text-center font-bold text-purple-600 border-l border-gray-50 text-sm">
+                                            {{ number_format((float) $p->skor_komandan, 0, ',', '.') }}
+                                        </td>
+                                    @endif
+                                @else
+                                    {{-- Jika lihat kategori lain, tiebreaker adalah PBB --}}
+                                    @if($kategori_pbb)
+                                        <td class="p-4 text-center font-bold text-green-600 border-l border-gray-50 text-sm">
+                                            {{ number_format((float) $p->skor_pbb, 0, ',', '.') }}
+                                        </td>
+                                    @endif
+                                @endif
+                            @endif
 
 
                             {{-- =================================================

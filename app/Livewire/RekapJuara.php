@@ -168,6 +168,46 @@ class RekapJuara extends Component
 
     /**
      * ============================================================
+     * AMBIL KATEGORI PBB
+     * ============================================================
+     */
+    private function getKategoriPbb()
+    {
+        if (!$this->selected_lomba_id) {
+            return null;
+        }
+
+        return KategoriPenilaian::query()
+            ->where('lomba_id', $this->selected_lomba_id)
+            ->where(function ($query) {
+                $query->whereRaw('LOWER(nama_kategori) LIKE ?', ['%pbb%'])
+                      ->orWhereRaw('LOWER(nama_kategori) LIKE ?', ['%perwasitan%']);
+            })
+            ->first();
+    }
+
+    /**
+     * ============================================================
+     * AMBIL KATEGORI KOMANDAN
+     * ============================================================
+     */
+    private function getKategoriKomandan()
+    {
+        if (!$this->selected_lomba_id) {
+            return null;
+        }
+
+        return KategoriPenilaian::query()
+            ->where('lomba_id', $this->selected_lomba_id)
+            ->where(function ($query) {
+                $query->whereRaw('LOWER(nama_kategori) LIKE ?', ['%komandan%'])
+                      ->orWhereRaw('LOWER(nama_kategori) LIKE ?', ['%danton%']);
+            })
+            ->first();
+    }
+
+    /**
+     * ============================================================
      * HITUNG NILAI KATEGORI
      * ============================================================
      *
@@ -377,6 +417,14 @@ class RekapJuara extends Component
 
             /*
              * ====================================================
+             * AMBIL KATEGORI TIEBREAKER
+             * ====================================================
+             */
+            $kategoriPbb = $this->getKategoriPbb();
+            $kategoriKomandan = $this->getKategoriKomandan();
+
+            /*
+             * ====================================================
              * TIE BREAKER
              * ====================================================
              */
@@ -403,7 +451,9 @@ class RekapJuara extends Component
                     function ($p)
                     use (
                         $semua_kategori,
-                        $kolom_kategori_tampil
+                        $kolom_kategori_tampil,
+                        $kategoriPbb,
+                        $kategoriKomandan
                     ) {
 
                         /*
@@ -497,6 +547,18 @@ class RekapJuara extends Component
                         $p->total_skor =
                             (float) $totalSkor;
 
+                        // Tiebreaker: PBB
+                        $p->skor_pbb =
+                            $kategoriPbb
+                                ? ($skorKategori[$kategoriPbb->id] ?? 0)
+                                : 0;
+
+                        // Tiebreaker: Komandan
+                        $p->skor_komandan =
+                            $kategoriKomandan
+                                ? ($skorKategori[$kategoriKomandan->id] ?? 0)
+                                : 0;
+
                         return $p;
                     }
                 );
@@ -511,8 +573,17 @@ class RekapJuara extends Component
                     ->sort(
                         function ($a, $b)
                         use (
-                            $tieBreakersAktif
+                            $tieBreakersAktif,
+                            $kategoriPbb,
+                            $kategoriKomandan,
+                            $kolom_kategori_tampil
                         ) {
+
+                            // Cek apakah mode tampilan adalah kategori PBB
+                            $isPbbMode = false;
+                            if ($kolom_kategori_tampil->count() === 1 && $kategoriPbb) {
+                                $isPbbMode = ($kolom_kategori_tampil->first()->id === $kategoriPbb->id);
+                            }
 
                             /*
                              * TOTAL TERBESAR
@@ -530,36 +601,62 @@ class RekapJuara extends Component
                             }
 
                             /*
-                             * TIE BREAKER
+                             * TIE BREAKER (untuk 非 UTAMA)
                              */
-                            foreach (
-                                $tieBreakersAktif
-                                as $kategoriId
-                            ) {
+                            if ($this->mode_tampilan !== 'utama') {
 
-                                $nilaiA =
-                                    (float) (
-                                        $a->skor_kategori[
-                                            $kategoriId
-                                        ] ?? 0
-                                    );
+                                if ($isPbbMode) {
+                                    // Jika kategori PBB, tiebreaker adalah KOMANDAN
+                                    if ($kategoriKomandan) {
+                                        $nilaiA = (float) ($a->skor_komandan ?? 0);
+                                        $nilaiB = (float) ($b->skor_komandan ?? 0);
 
-                                $nilaiB =
-                                    (float) (
-                                        $b->skor_kategori[
-                                            $kategoriId
-                                        ] ?? 0
-                                    );
+                                        if ($nilaiA !== $nilaiB) {
+                                            return $nilaiB <=> $nilaiA;
+                                        }
+                                    }
+                                } else {
+                                    // Jika kategori lain (bukan PBB), tiebreaker adalah PBB
+                                    if ($kategoriPbb) {
+                                        $nilaiA = (float) ($a->skor_pbb ?? 0);
+                                        $nilaiB = (float) ($b->skor_pbb ?? 0);
 
-                                if (
-                                    $nilaiA !==
-                                    $nilaiB
+                                        if ($nilaiA !== $nilaiB) {
+                                            return $nilaiB <=> $nilaiA;
+                                        }
+                                    }
+                                }
+
+                                // Tie breaker dari database setting
+                                foreach (
+                                    $tieBreakersAktif
+                                    as $kategoriId
                                 ) {
 
-                                    return
+                                    $nilaiA =
+                                        (float) (
+                                            $a->skor_kategori[
+                                                $kategoriId
+                                            ] ?? 0
+                                        );
+
+                                    $nilaiB =
+                                        (float) (
+                                            $b->skor_kategori[
+                                                $kategoriId
+                                            ] ?? 0
+                                        );
+
+                                    if (
+                                        $nilaiA !==
                                         $nilaiB
-                                        <=>
-                                        $nilaiA;
+                                    ) {
+
+                                        return
+                                            $nilaiB
+                                            <=>
+                                            $nilaiA;
+                                    }
                                 }
                             }
 
@@ -597,6 +694,12 @@ class RekapJuara extends Component
 
                 'ranking_peserta' =>
                     $pesertas,
+
+                'kategori_pbb' =>
+                    $kategoriPbb,
+
+                'kategori_komandan' =>
+                    $kategoriKomandan,
             ]
         );
     }
