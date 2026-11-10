@@ -77,6 +77,7 @@ class MasterEvent extends Component
             'urutan_juara' => $urutanArray,
             'kuota_juara' => $this->kuota_juara ?: 0,
             'format_juara' => $this->format_juara,
+            'tie_breakers' => array_values(array_filter($this->tie_breakers, fn ($v) => $v !== null && $v !== '')),
             'status_aktif' => true
         ]);
 
@@ -127,7 +128,7 @@ class MasterEvent extends Component
             'urutan_juara' => $urutanArray,
             'kuota_juara' => $this->kuota_juara ?: 0,
             'format_juara' => $this->format_juara,
-            'tie_breakers' => $this->tie_breakers
+            'tie_breakers' => array_values(array_filter($this->tie_breakers, fn ($v) => $v !== null && $v !== ''))
         ];
 
         if ($this->logo) {

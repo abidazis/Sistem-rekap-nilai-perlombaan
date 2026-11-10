@@ -10,13 +10,14 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // Bikin akun admin
+        // Bikin akun admin utama (login memakai username)
         $admin = User::updateOrCreate(
-            ['email' => 'admin@pandara.com'], // Cek apakah email ini sudah ada
+            ['username' => 'admin'],
             [
                 'name' => 'Administrator',
+                'email' => 'admin@pandara.com',
                 'password' => Hash::make('password123'),
-                'role' => 'admin' // Hapus baris ini kalau kamu pakai package Spatie Permission
+                'role' => 'admin'
             ]
         );
 

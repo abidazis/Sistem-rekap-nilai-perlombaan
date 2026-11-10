@@ -333,6 +333,10 @@ class RekapJuara extends Component
 
         $kolom_kategori_tampil = collect();
 
+        $kategoriPbb = null;
+
+        $kategoriKomandan = null;
+
         /*
          * ========================================================
          * EVENT DIPILIH
