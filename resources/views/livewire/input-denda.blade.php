@@ -1,4 +1,6 @@
 <div>
+    @php $isAdmin = (auth()->user()->role ?? null) === 'admin'; @endphp
+
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
             <h1 class="text-3xl font-extrabold text-red-700 tracking-tight flex items-center gap-2">
@@ -8,9 +10,11 @@
                 {{ $is_master_mode ? 'Atur daftar pelanggaran dan poin minus sesuai juklak/juknis event ini.' : 'Catat denda poin akibat pelanggaran pasukan di lapangan sesuai buku pedoman.' }}
             </p>
         </div>
-        <button wire:click="toggleMasterMode" class="w-full md:w-auto px-6 py-3 {{ $is_master_mode ? 'bg-slate-700' : 'bg-red-800' }} text-white font-bold rounded-xl shadow-lg hover:scale-105 transition-all flex items-center justify-center gap-2">
-            {{ $is_master_mode ? '🔙 Kembali ke Input Denda' : '⚙️ Kelola Pedoman Event' }}
-        </button>
+        @if($isAdmin)
+            <button wire:click="toggleMasterMode" class="w-full md:w-auto px-6 py-3 {{ $is_master_mode ? 'bg-slate-700' : 'bg-red-800' }} text-white font-bold rounded-xl shadow-lg hover:scale-105 transition-all flex items-center justify-center gap-2">
+                {{ $is_master_mode ? '🔙 Kembali ke Input Denda' : '⚙️ Kelola Pedoman Event' }}
+            </button>
+        @endif
     </div>
 
     @if (session()->has('message'))
@@ -19,7 +23,7 @@
         </div>
     @endif
 
-    @if($is_master_mode)
+    @if($is_master_mode && $isAdmin)
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in-down">
             <div class="md:col-span-1 bg-white p-6 rounded-xl shadow-lg border border-slate-200 self-start">
                 <h3 class="font-bold text-slate-700 mb-4 border-b pb-2">Tambah Aturan Baru</h3>

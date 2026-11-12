@@ -21,6 +21,17 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
+        // Akun Tim Rekap: hanya bisa input nilai & pengurangan nilai (pelanggaran)
+        User::updateOrCreate(
+            ['username' => 'rekap'],
+            [
+                'name' => 'Tim Rekap',
+                'email' => 'rekap@pandara.com',
+                'password' => Hash::make('rekap123'),
+                'role' => 'rekap'
+            ]
+        );
+
         // JIKA KAMU PAKAI SPATIE PERMISSION, hapus '//' di bawah ini:
         // $admin->assignRole('admin');
     }

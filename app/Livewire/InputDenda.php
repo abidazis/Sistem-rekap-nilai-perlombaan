@@ -97,13 +97,22 @@ class InputDenda extends Component
         session()->flash('message', 'Data denda dibatalkan/dihapus.');
     }
 
-    public function toggleMasterMode() 
-    { 
-        $this->is_master_mode = !$this->is_master_mode; 
+    private function isAdmin(): bool
+    {
+        return strtolower((string) (auth()->user()->role ?? '')) === 'admin';
+    }
+
+    public function toggleMasterMode()
+    {
+        abort_unless($this->isAdmin(), 403);
+
+        $this->is_master_mode = !$this->is_master_mode;
     }
 
     public function simpanMaster()
     {
+        abort_unless($this->isAdmin(), 403);
+
         $this->validate([
             'nama_pelanggaran' => 'required',
             'poin_master' => 'required|numeric',
@@ -119,8 +128,10 @@ class InputDenda extends Component
         session()->flash('message', 'Pedoman berhasil ditambah!');
     }
 
-    public function hapusMaster($id) 
-    { 
-        PedomanDenda::find($id)->delete(); 
+    public function hapusMaster($id)
+    {
+        abort_unless($this->isAdmin(), 403);
+
+        PedomanDenda::find($id)->delete();
     }
 }

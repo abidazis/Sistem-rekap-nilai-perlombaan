@@ -19,7 +19,7 @@ class CekRole
             return redirect('/login');
         }
 
-        $userRole = strtolower(auth()->user()->role);
+        $userRole = strtolower(auth()->user()->role ?? '');
 
         foreach ($roles as $allowedRole) {
             if ($userRole === strtolower($allowedRole)) {
@@ -27,7 +27,18 @@ class CekRole
             }
         }
 
-        // PERBAIKAN: Lempar ke '/' karena rute dashboard kita ada di '/'
-        return redirect('/')->with('error', 'Akses Terbatas! Anda bukan Admin.');
+        // Arahkan ke halaman yang memang boleh diakses role tersebut (hindari redirect loop).
+        $fallback = match ($userRole) {
+            'admin', 'juri' => '/',
+            'rekap' => '/input-nilai',
+            default => '/login',
+        };
+
+        // Kalau halaman tujuan juga ditolak, hentikan dengan 403.
+        if ($request->is(ltrim($fallback, '/'))) {
+            abort(403, 'Akses Terbatas!');
+        }
+
+        return redirect($fallback)->with('error', 'Akses Terbatas! Halaman ini tidak tersedia untuk peran Anda.');
     }
 }

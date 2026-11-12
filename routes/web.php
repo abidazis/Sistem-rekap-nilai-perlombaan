@@ -25,12 +25,19 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 // ROUTE SISTEM UTAMA (Wajib Login)
 // ==========================================
 Route::middleware('auth')->group(function () {
-    
-    // Bisa diakses Admin & Tim Rekap
-    Route::get('/', Dashboard::class)->name('dashboard');
-    Route::get('/input-nilai', InputNilai::class)->name('input.nilai');
-    Route::get('/rekap-juara', RekapJuara::class)->name('rekap.juara'); // Leaderboard
-    Route::get('/input-juara-spesial', App\Livewire\InputJuaraSpesial::class)->name('input.juara.spesial');
+
+    // Dashboard, Leaderboard & Juara Spesial: Admin & Juri
+    Route::middleware('role:admin,juri')->group(function () {
+        Route::get('/', Dashboard::class)->name('dashboard');
+        Route::get('/rekap-juara', RekapJuara::class)->name('rekap.juara'); // Leaderboard
+        Route::get('/input-juara-spesial', App\Livewire\InputJuaraSpesial::class)->name('input.juara.spesial');
+    });
+
+    // INPUT NILAI: Admin, Juri & Tim Rekap
+    Route::get('/input-nilai', InputNilai::class)->name('input.nilai')->middleware('role:admin,juri,rekap');
+
+    // PENGURANGAN NILAI (PELANGGARAN): Admin & Tim Rekap
+    Route::get('/input-denda', InputDenda::class)->name('input.denda')->middleware('role:admin,rekap');
 
     // KHUSUS ADMIN (Akses Master Data & Cetak-cetak)
     Route::middleware('role:admin')->group(function () {
@@ -39,7 +46,6 @@ Route::middleware('auth')->group(function () {
         Route::get('/master-format-nilai', MasterFormatNilai::class)->name('master.format');
         Route::get('/master-peserta', MasterPeserta::class)->name('master.peserta');
         Route::get('/master-juri', MasterJuri::class)->name('master.juri');
-        Route::get('/input-denda', InputDenda::class)->name('input.denda');
         Route::get('/audit-juri', AuditJuri::class)->name('audit.juri');
 
         // Fitur Cetak & Export

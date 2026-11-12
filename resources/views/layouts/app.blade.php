@@ -22,6 +22,12 @@
 
 <body class="bg-slate-50 font-sans antialiased text-slate-800 overflow-x-hidden">
 
+    @php
+        $role = auth()->user()->role ?? null;
+        $isAdmin = $role === 'admin';
+        $isRekap = $role === 'rekap';
+    @endphp
+
     <div x-data="{ sidebarOpen: true }" class="min-h-screen">
         
         <aside 
@@ -39,16 +45,18 @@
 
             <nav class="flex-1 py-4 flex flex-col gap-2 overflow-y-auto no-scrollbar">
                 
-                <a href="{{ route('dashboard') }}" wire:navigate class="flex items-center mx-3 px-3 py-3 rounded-lg transition-colors {{ request()->routeIs('dashboard') ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}" :class="!sidebarOpen ? 'justify-center' : ''">
-                    <span class="text-xl">🏠</span>
-                    <span x-show="sidebarOpen" class="ml-3 font-semibold text-sm whitespace-nowrap">Dashboard</span>
-                </a>
-                <a href="/rekap-juara" wire:navigate class="flex items-center mx-3 px-3 py-3 rounded-lg transition-colors {{ request()->is('rekap-juara') ? 'bg-yellow-500 text-slate-900 font-bold shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}" :class="!sidebarOpen ? 'justify-center' : ''">
-                    <span class="text-xl">🏆</span>
-                    <span x-show="sidebarOpen" class="ml-3 font-semibold text-sm whitespace-nowrap">LEADERBOARD</span>
-                </a>
+                @unless($isRekap)
+                    <a href="{{ route('dashboard') }}" wire:navigate class="flex items-center mx-3 px-3 py-3 rounded-lg transition-colors {{ request()->routeIs('dashboard') ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}" :class="!sidebarOpen ? 'justify-center' : ''">
+                        <span class="text-xl">🏠</span>
+                        <span x-show="sidebarOpen" class="ml-3 font-semibold text-sm whitespace-nowrap">Dashboard</span>
+                    </a>
+                    <a href="/rekap-juara" wire:navigate class="flex items-center mx-3 px-3 py-3 rounded-lg transition-colors {{ request()->is('rekap-juara') ? 'bg-yellow-500 text-slate-900 font-bold shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}" :class="!sidebarOpen ? 'justify-center' : ''">
+                        <span class="text-xl">🏆</span>
+                        <span x-show="sidebarOpen" class="ml-3 font-semibold text-sm whitespace-nowrap">LEADERBOARD</span>
+                    </a>
+                @endunless
 
-                @if(auth()->check() && auth()->user()->role === 'admin')
+                @if($isAdmin)
                     <div x-show="sidebarOpen" class="mt-4 px-6 text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">Master Data</div>
                     <div x-show="!sidebarOpen" class="mt-4 text-center text-slate-600 text-xs">•••</div>
 
@@ -84,25 +92,29 @@
                     <span class="text-xl">✍️</span>
                     <span x-show="sidebarOpen" class="ml-3 font-semibold text-sm whitespace-nowrap">INPUT NILAI</span>
                 </a>
-                <a href="/input-juara-spesial" class="flex items-center mx-3 px-3 py-3 rounded-lg transition-colors {{ request()->is('input-juara-spesial') ? 'bg-green-600 text-white font-bold shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}" :class="!sidebarOpen ? 'justify-center' : ''">
-                    <span class="text-xl">✍️</span>
-                    <span x-show="sidebarOpen" class="ml-3 font-semibold text-sm whitespace-nowrap">INPUT JUARA SPESIAL</span>
-                </a>
+                @unless($isRekap)
+                    <a href="/input-juara-spesial" class="flex items-center mx-3 px-3 py-3 rounded-lg transition-colors {{ request()->is('input-juara-spesial') ? 'bg-green-600 text-white font-bold shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}" :class="!sidebarOpen ? 'justify-center' : ''">
+                        <span class="text-xl">✍️</span>
+                        <span x-show="sidebarOpen" class="ml-3 font-semibold text-sm whitespace-nowrap">INPUT JUARA SPESIAL</span>
+                    </a>
+                @endunless
 
-                @if(auth()->check() && auth()->user()->role === 'admin')
+                @if($isAdmin || $isRekap)
                     <a href="/input-denda" wire:navigate class="flex items-center mx-3 px-3 py-3 rounded-lg transition-colors {{ request()->is('input-denda') ? 'bg-red-600 text-white font-bold shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}" :class="!sidebarOpen ? 'justify-center' : ''">
                         <span class="text-xl">⚠️</span>
                         <span x-show="sidebarOpen" class="ml-3 font-semibold text-sm whitespace-nowrap">Pengurangan Nilai</span>
                     </a>
                 @endif
 
-                <div x-show="sidebarOpen" class="mt-4 px-6 text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">Hasil Lomba & Audit</div>
-                <div x-show="!sidebarOpen" class="mt-4 text-center text-slate-600 text-xs">•••</div>
+                @if($isAdmin)
+                    <div x-show="sidebarOpen" class="mt-4 px-6 text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">Hasil Lomba & Audit</div>
+                    <div x-show="!sidebarOpen" class="mt-4 text-center text-slate-600 text-xs">•••</div>
 
-                <a href="{{ route('audit.juri') }}" wire:navigate class="flex items-center mx-3 px-3 py-3 rounded-lg transition-colors {{ request()->routeIs('audit.juri') ? 'bg-purple-600 text-white font-bold shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}" :class="!sidebarOpen ? 'justify-center' : ''">
-                    <span class="text-xl">🔍</span>
-                    <span x-show="sidebarOpen" class="ml-3 font-semibold text-sm whitespace-nowrap">AUDIT JURI</span>
-                </a>
+                    <a href="{{ route('audit.juri') }}" wire:navigate class="flex items-center mx-3 px-3 py-3 rounded-lg transition-colors {{ request()->routeIs('audit.juri') ? 'bg-purple-600 text-white font-bold shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}" :class="!sidebarOpen ? 'justify-center' : ''">
+                        <span class="text-xl">🔍</span>
+                        <span x-show="sidebarOpen" class="ml-3 font-semibold text-sm whitespace-nowrap">AUDIT JURI</span>
+                    </a>
+                @endif
             </nav>
         </aside>
 
@@ -118,10 +130,12 @@
                         </svg>
                     </button>
                     <h2 class="text-lg font-black text-slate-800 hidden sm:block tracking-tight">
-                        @if(auth()->check() && auth()->user()->role === 'admin')
+                        @if($isAdmin)
                             Administrator Panel
-                        @else
+                        @elseif($isRekap)
                             Tim Rekap Panel
+                        @else
+                            Juri Panel
                         @endif
                     </h2>
                 </div>
@@ -129,11 +143,11 @@
                 <div class="flex items-center gap-4">
                     @auth
                         <div class="text-right hidden sm:block">
-                            <p class="text-sm font-bold text-slate-800">{{ auth()->user()->nama }}</p>
+                            <p class="text-sm font-bold text-slate-800">{{ auth()->user()->name }}</p>
                             <p class="text-[10px] text-green-600 font-bold uppercase tracking-wider">● Online ({{ auth()->user()->role }})</p>
                         </div>
                         <div class="h-9 w-9 rounded-full bg-slate-800 flex items-center justify-center text-white font-bold shadow-md">
-                            {{ substr(auth()->user()->nama, 0, 1) }}
+                            {{ substr(auth()->user()->name, 0, 1) }}
                         </div>
                         
                         <form method="POST" action="{{ route('logout') }}" class="inline">

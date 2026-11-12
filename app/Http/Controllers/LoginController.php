@@ -31,12 +31,21 @@ class LoginController extends Controller
         if ($user && Hash::check($request->password, $user->password)) {
             Auth::login($user);
             $request->session()->regenerate();
-            return redirect()->intended('/');
+            return redirect()->intended($this->homePathFor($user));
         }
 
         return back()->withErrors([
             'username' => '⚠️ Username atau Password antum salah bro!',
         ])->onlyInput('username');
+    }
+
+    /**
+     * Halaman pertama setelah login sesuai role.
+     * Tim Rekap langsung diarahkan ke input nilai (tidak punya akses dashboard).
+     */
+    private function homePathFor(User $user): string
+    {
+        return strtolower((string) $user->role) === 'rekap' ? '/input-nilai' : '/';
     }
 
     public function logout(Request $request)

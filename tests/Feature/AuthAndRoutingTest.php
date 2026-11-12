@@ -94,4 +94,50 @@ class AuthAndRoutingTest extends TestCase
         $response->assertRedirect('/');
         $response->assertSessionHas('error');
     }
+
+    public function test_rekap_login_redirects_to_input_nilai(): void
+    {
+        $this->makeUser('rekap', 'rekap', 'rekap123');
+
+        $response = $this->post('/login', [
+            'username' => 'rekap',
+            'password' => 'rekap123',
+        ]);
+
+        $response->assertRedirect('/input-nilai');
+        $this->assertAuthenticated();
+    }
+
+    public function test_rekap_can_only_access_input_nilai_and_input_denda(): void
+    {
+        $rekap = $this->makeUser('rekap', 'rekap');
+        $event = $this->makeEvent();
+        $kategori = $this->makeKategori($event, 'PBB', true, true);
+        $this->makeItem($kategori);
+        $this->makePeserta($event);
+
+        $this->actingAs($rekap)->get('/input-nilai')->assertOk();
+        $this->actingAs($rekap)->get('/input-denda')
+            ->assertOk()
+            ->assertDontSee('Kelola Pedoman Event');
+
+        $blockedRoutes = [
+            '/',
+            '/rekap-juara',
+            '/input-juara-spesial',
+            '/master-event',
+            '/master-kategori',
+            '/master-format-nilai',
+            '/master-peserta',
+            '/master-juri',
+            '/audit-juri',
+        ];
+
+        foreach ($blockedRoutes as $uri) {
+            $response = $this->actingAs($rekap)->get($uri);
+
+            $response->assertRedirect('/input-nilai');
+            $response->assertSessionHas('error');
+        }
+    }
 }
