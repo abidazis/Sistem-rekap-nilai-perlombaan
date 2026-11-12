@@ -6,7 +6,6 @@ use Livewire\Component;
 use App\Models\Juri;
 use App\Models\Lomba;
 use App\Models\KategoriPenilaian; // JANGAN LUPA IMPORT INI
-use Illuminate\Support\Facades\Hash;
 use Livewire\Attributes\Layout;
 
 class MasterJuri extends Component
@@ -15,7 +14,7 @@ class MasterJuri extends Component
     public $selected_lomba_id;
 
     // Form Fields
-    public $nama, $posisi, $username, $password;
+    public $nama, $posisi;
     public $juri_id; // Untuk Edit
     
     // Array untuk menyimpan centangan tugas juri (BARU)
@@ -59,31 +58,18 @@ class MasterJuri extends Component
     {
         $this->validate([
             'nama' => 'required',
-            'username' => 'required|unique:juri,username',
-            'password' => 'required|min:4',
             'posisi' => 'required'
         ]);
 
-        // 1. BUAT AKUN DI TABEL USER DENGAN DUMMY EMAIL
-        \App\Models\User::create([
-            'name' => $this->nama,
-            'username' => $this->username, 
-            'email' => $this->username . '@pandara.local',
-            'password' => Hash::make($this->password),
-            'role' => 'juri'
-        ]);
-
-        // 2. SIMPAN DATA PROFIL JURI
+        // Simpan data juri (tanpa akun login/username & password)
         \App\Models\Juri::create([
             'lomba_id' => $this->selected_lomba_id,
             'nama' => $this->nama,
             'posisi' => $this->posisi,
-            'username' => $this->username,
-            'password' => Hash::make($this->password),
-            'kategori_ids' => $this->kategori_ids 
+            'kategori_ids' => $this->kategori_ids
         ]);
 
-        session()->flash('message', 'Akun Juri Berhasil Dibuat dan Bisa Digunakan Untuk Login!');
+        session()->flash('message', 'Data Juri Berhasil Ditambahkan!');
         $this->cancel();
     }
 
@@ -93,12 +79,9 @@ class MasterJuri extends Component
         $this->juri_id = $id;
         $this->nama = $juri->nama;
         $this->posisi = $juri->posisi;
-        $this->username = $juri->username;
-        
+
         // Load centangan yang udah ada di database ke form edit (BARU)
         $this->kategori_ids = $juri->kategori_ids ?? [];
-        
-        // Password sengaja dikosongkan biar aman
 
         $this->is_create = true;
         $this->is_edit = true;
@@ -106,29 +89,16 @@ class MasterJuri extends Component
 
     public function update()
     {
-        $rules = [
+        $this->validate([
             'nama' => 'required',
             'posisi' => 'required',
-            'username' => 'required|unique:juri,username,'.$this->juri_id, // Pastikan nama tabelnya 'juris'
-        ];
-
-        // Password validasi hanya kalau diisi (ganti password)
-        if ($this->password) {
-            $rules['password'] = 'min:4';
-        }
-
-        $this->validate($rules);
+        ]);
 
         $data = [
             'nama' => $this->nama,
             'posisi' => $this->posisi,
-            'username' => $this->username,
             'kategori_ids' => $this->kategori_ids // Update centangan (BARU)
         ];
-
-        if ($this->password) {
-            $data['password'] = Hash::make($this->password);
-        }
 
         Juri::find($this->juri_id)->update($data);
 
@@ -159,8 +129,6 @@ class MasterJuri extends Component
     {
         $this->nama = '';
         $this->posisi = '';
-        $this->username = '';
-        $this->password = '';
         $this->kategori_ids = []; // Kosongkan centangan (BARU)
     }
 }

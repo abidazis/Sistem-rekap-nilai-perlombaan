@@ -30,7 +30,7 @@
 
     @if($is_create)
         <div class="bg-white p-6 rounded-lg shadow-lg border-l-4 border-red-500 mb-6 animate-fade-in-down">
-            <h3 class="text-xl font-bold mb-6 text-gray-800 border-b pb-2">{{ $is_edit ? 'Edit Akun Juri' : 'Buat Akun Juri Baru' }}</h3>
+            <h3 class="text-xl font-bold mb-6 text-gray-800 border-b pb-2">{{ $is_edit ? 'Edit Data Juri' : 'Registrasi Juri Baru' }}</h3>
             
             <form wire:submit.prevent="{{ $is_edit ? 'update' : 'store' }}">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -61,18 +61,6 @@
                         @error('posisi') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-bold mb-2 text-gray-600">Username Login</label>
-                        <input type="text" wire:model="username" class="w-full border border-gray-300 p-3 rounded font-mono bg-gray-50" placeholder="juri_pbb">
-                        @error('username') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-bold mb-2 text-gray-600">Password</label>
-                        <input type="text" wire:model="password" class="w-full border border-gray-300 p-3 rounded font-mono bg-gray-50" placeholder="Min. 4 karakter">
-                        @if($is_edit) <p class="text-xs text-gray-400 mt-1">*Kosongkan jika tidak ingin mengganti password</p> @endif
-                    </div>
-
                     <!-- CHECKBOX HAK AKSES KATEGORI (SUNTIKAN BARU) -->
                     <div class="col-span-1 md:col-span-2 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                         <label class="block text-sm font-bold mb-3 text-blue-800 border-b border-blue-200 pb-2">📋 Juri Ini Bertugas Menilai Kategori Apa Saja?</label>
@@ -95,7 +83,7 @@
 
                 <div class="flex justify-end gap-3 border-t pt-4">
                     <button type="button" wire:click="cancel" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-6 rounded transition">Batal</button>
-                    <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-8 rounded shadow-lg transition">Simpan Akun</button>
+                    <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-8 rounded shadow-lg transition">Simpan Data Juri</button>
                 </div>
             </form>
         </div>
@@ -109,7 +97,6 @@
                     <th class="p-4 border-b">Posisi</th>
                     <!-- Kolom Baru: Tugas Kategori -->
                     <th class="p-4 border-b">Tugas Kategori</th>
-                    <th class="p-4 border-b">Username</th>
                     <th class="p-4 border-b text-center w-32">Aksi</th>
                 </tr>
             </thead>
@@ -142,22 +129,21 @@
                             </div>
                         </td>
 
-                        <td class="p-4 font-mono text-gray-600">{{ $j->username }}</td>
                         <td class="p-4 text-center space-x-2">
                             <button wire:click="edit({{ $j->id }})" class="text-blue-600 hover:text-blue-800 font-bold text-xs uppercase">Edit</button>
-                            <button wire:click="delete({{ $j->id }})" onclick="confirm('Hapus akun juri ini?') || event.stopImmediatePropagation()" class="text-red-600 hover:text-red-800 font-bold text-xs uppercase">Hapus</button>
+                            <button wire:click="delete({{ $j->id }})" onclick="confirm('Hapus data juri ini?') || event.stopImmediatePropagation()" class="text-red-600 hover:text-red-800 font-bold text-xs uppercase">Hapus</button>
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="5" class="p-10 text-center text-gray-400">
-                            Belum ada akun Juri terdaftar.
+                        <td colspan="4" class="p-10 text-center text-gray-400">
+                            Belum ada data Juri terdaftar.
                         </td>
                     </tr>
                     @endforelse
                 @else
                     <tr>
-                        <td colspan="5" class="p-10 text-center text-gray-400 bg-gray-50">
+                        <td colspan="4" class="p-10 text-center text-gray-400 bg-gray-50">
                             👈 Pilih Event di atas untuk mengelola Juri.
                         </td>
                     </tr>

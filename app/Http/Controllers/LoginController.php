@@ -21,7 +21,12 @@ class LoginController extends Controller
             'password' => ['required'],
         ]);
 
-        $user = User::where('username', $request->username)->first();
+        $identifier = trim((string) $request->input('username'));
+
+        // Terima login pakai username ATAU email
+        $user = User::where('username', $identifier)
+            ->orWhere('email', $identifier)
+            ->first();
 
         if ($user && Hash::check($request->password, $user->password)) {
             Auth::login($user);
